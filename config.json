@@ -1,0 +1,11 @@
+{
+  "layout": [
+    {
+      "command": "Greet",
+      "image": "hand.gif",
+      "type": "robotgo",
+      "params": "typestr",
+      "args": "Hello\n"
+    }
+  ]
+}
