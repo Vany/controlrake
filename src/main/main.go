@@ -5,19 +5,27 @@ package main
 
 import (
 	"context"
-	"fmt"
-	"github.com/Vany/controlrake/src/config"
-	"github.com/Vany/controlrake/src/webserver"
+	"github.com/vany/controlrake/src/types"
+	"net/http"
 )
 
 func main() {
-	cfg := config.New().Read("config.json")
-	ctx, cFunc := context.WithCancel(context.Background())
-	ws := webserver.New(cfg).Run(ctx)
+	ctx := types.ReadConfigToContext(context.Background())
 
-	s := ""
-	fmt.Scanf("%s", &s)
+	// components.serve()
 
-	cFunc()
-	ws.Stop()
+	cfg, _ := types.FromContext(ctx)
+	http.ListenAndServe(cfg.BindAddress, Mux(ctx))
+}
+
+func Mux(ctx context.Context) http.Handler {
+	cfg, _ := types.FromContext(ctx)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/static", 302)
+	})
+
+	mux.Handle("/static", http.FileServer(http.Dir(cfg.StaticRoot)))
+
+	return mux
 }
