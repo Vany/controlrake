@@ -5,27 +5,20 @@ package main
 
 import (
 	"context"
+	"github.com/vany/controlrake/src/config"
+	"github.com/vany/controlrake/src/http"
 	"github.com/vany/controlrake/src/types"
-	"net/http"
+	"github.com/vany/controlrake/src/widget"
+	. "github.com/vany/pirog"
 )
 
 func main() {
-	ctx := types.ReadConfigToContext(context.Background())
-
+	ctx := context.Background()
+	ctx = types.PutToContext(ctx, MUST2(config.ReadConfig(ctx)))
+	ctx = types.CreateLoggerToContext(ctx)
+	con := types.FromContext(ctx)
+	ctx = types.PutToContext(ctx, widget.NewRegistry(ctx, con.Cfg.Widgets))
 	// components.serve()
 
-	cfg, _ := types.FromContext(ctx)
-	http.ListenAndServe(cfg.BindAddress, Mux(ctx))
-}
-
-func Mux(ctx context.Context) http.Handler {
-	cfg, _ := types.FromContext(ctx)
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "/static", 302)
-	})
-
-	mux.Handle("/static", http.FileServer(http.Dir(cfg.StaticRoot)))
-
-	return mux
+	MUST(http.ListenAndServe(ctx))
 }

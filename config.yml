@@ -1,5 +1,9 @@
 StaticRoot: ./static
 
 Widgets:
-  -
-  -
+  - Name: 1
+    Type: Label
+    Args: "First Label"
+  - Name: 2
+    Type: Label
+    Args: "Second Label"
