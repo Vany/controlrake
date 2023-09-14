@@ -1,6 +1,7 @@
 package widget
 
 import (
+	"context"
 	"html/template"
 	"io"
 )
@@ -10,7 +11,9 @@ type Label struct {
 	Text string //🔴actually we do not need it, but for education purposes let's use it
 }
 
-func (w *Label) Init() error {
+var _ = MustSurvive(RegisterWidgetType(&Label{}))
+
+func (w *Label) Init(context.Context) error {
 	if s, ok := w.Args.(string); !ok {
 		return w.Errorf("args is not string, but %#v", w.Args)
 	} else {
@@ -27,7 +30,7 @@ func (w *Label) RenderTo(wr io.Writer) error {
 }
 
 var TLabel = template.Must(template.New("Label").Parse(`
-<div style="border-width: thick ;border: black" id="{{.Name}}">
+<div class="widget" id="{{.Name}}">
 	<b>{{.Text}}</b>	
 </div>
 `))

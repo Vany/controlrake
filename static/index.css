@@ -1,0 +1,6 @@
+div.widget {
+    display: inline;
+    border: 1px solid black;
+    margin: 2px;
+    border-radius: 2px;
+}

@@ -6,19 +6,25 @@ package main
 import (
 	"context"
 	"github.com/vany/controlrake/src/config"
+	"github.com/vany/controlrake/src/cont"
 	"github.com/vany/controlrake/src/http"
 	"github.com/vany/controlrake/src/types"
 	"github.com/vany/controlrake/src/widget"
 	. "github.com/vany/pirog"
+	"os"
+	"os/signal"
 )
 
 func main() {
-	ctx := context.Background()
-	ctx = types.PutToContext(ctx, MUST2(config.ReadConfig(ctx)))
-	ctx = types.CreateLoggerToContext(ctx)
-	con := types.FromContext(ctx)
-	ctx = types.PutToContext(ctx, widget.NewRegistry(ctx, con.Cfg.Widgets))
+
+	ctx, cf := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer cf()
+	ctx = cont.PutToContext(ctx, MUST2(config.ReadConfig(ctx)))
+	ctx = cont.PutToContext(ctx, types.NewLogger())
+	con := cont.FromContext(ctx)
+	ctx = cont.PutToContext(ctx, widget.NewRegistry(ctx, con.Cfg.Widgets))
 	// components.serve()
 
 	MUST(http.ListenAndServe(ctx))
+
 }

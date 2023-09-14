@@ -1,31 +1,32 @@
-package types
+package cont
 
 import (
 	"context"
 	"github.com/vany/controlrake/src/config"
-	"github.com/vany/controlrake/src/widget"
+	"github.com/vany/controlrake/src/types"
 )
 
 var Key = struct{}{}
 
-type Context struct {
+// container with all my goodies
+type Goodies struct {
 	Cfg     *config.Config
-	Log     *Logger
-	Widgets widget.Registry
+	Log     *types.Logger
+	Widgets types.WidgetRegistry
 }
 
 func PutToContext(ctx context.Context, obj any) context.Context {
 	c := FromContext(ctx)
 	if c == nil {
-		c = &Context{}
+		c = &Goodies{}
 		ctx = context.WithValue(ctx, Key, c)
 	}
 	switch to := obj.(type) {
 	case *config.Config:
 		c.Cfg = to
-	case *Logger:
+	case *types.Logger:
 		c.Log = to
-	case widget.Registry:
+	case types.WidgetRegistry:
 		c.Widgets = to
 	default:
 		panic("unknown type in context container")
@@ -33,11 +34,11 @@ func PutToContext(ctx context.Context, obj any) context.Context {
 	return ctx
 }
 
-func FromContext(ctx context.Context) *Context {
+func FromContext(ctx context.Context) *Goodies {
 	c := ctx.Value(Key) // or die
 	if c == nil {
 		return nil
 	} else {
-		return c.(*Context)
+		return c.(*Goodies)
 	}
 }

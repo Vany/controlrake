@@ -4,13 +4,12 @@ import (
 	"context"
 	"fmt"
 	"github.com/spf13/viper"
-	"github.com/vany/controlrake/src/widget"
 )
 
 type Config struct {
 	BindAddress string
 	StaticRoot  string
-	Widgets     []widget.Config
+	Widgets     []map[string]any
 }
 
 func ReadConfig(ctx context.Context) (*Config, error) {

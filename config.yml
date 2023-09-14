@@ -1,9 +1,20 @@
 StaticRoot: ./static
 
 Widgets:
-  - Name: 1
+  - Name: "1"
     Type: Label
     Args: "First Label"
-  - Name: 2
+
+  - Name: "2"
     Type: Label
     Args: "Second Label"
+
+  - Name: "Cicadas"
+    Type: Button
+    Args:
+      Sound: cricket.mp3
+
+  - Name: Часики
+    Type: Clock
+    Args:
+
