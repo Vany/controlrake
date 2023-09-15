@@ -22,3 +22,7 @@ type WidgetRegistry interface {
 	SendChan() chan string
 	RenderTo(ctx context.Context, w io.Writer) error
 }
+
+type Sound interface {
+	Play(ctx context.Context, fname string) error
+}

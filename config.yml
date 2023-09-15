@@ -1,5 +1,5 @@
 StaticRoot: ./static
-
+SoundRoot: ./sounds
 Widgets:
   - Name: "1"
     Type: Label
@@ -12,9 +12,9 @@ Widgets:
   - Name: "Cicadas"
     Type: Button
     Args:
-      Sound: cricket.mp3
+      Sound: cri.mp3
 
   - Name: Часики
     Type: Clock
-    Args:
+    Args: "15:04:05 MST"
 

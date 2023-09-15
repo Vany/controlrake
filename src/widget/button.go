@@ -1,20 +1,12 @@
 package widget
 
 import (
-	"bytes"
 	"context"
-	"fmt"
-	"html/template"
-	"io"
-	"os"
-	"path"
-	"time"
-
-	"github.com/ebitengine/oto/v3"
-	"github.com/hajimehoshi/go-mp3"
 	"github.com/mitchellh/mapstructure"
 	"github.com/vany/controlrake/src/cont"
 	. "github.com/vany/pirog"
+	"html/template"
+	"io"
 )
 
 type ButtonArgs struct {
@@ -52,50 +44,8 @@ func (w *Button) Consume(ctx context.Context, event []byte) error {
 	con.Log.Log().Bytes("event", event).Msg("Pressed")
 
 	if w.Args.Sound != "" {
-		go func() {
-			err := playSound(path.Join("sounds", w.Args.Sound))
-			con.Log.Info().Err(err).Msg("Sound Played")
-		}()
+		cont.FromContext(ctx).Sound.Play(ctx, w.Args.Sound)
 	}
 
-	return nil
-}
-
-func playSound(fname string) error {
-	fileBytes, err := os.ReadFile(fname)
-	if err != nil {
-		return fmt.Errorf("reading %s failed: %w", fname, err)
-	}
-
-	fileBytesReader := bytes.NewReader(fileBytes)
-	decodedMp3, err := mp3.NewDecoder(fileBytesReader)
-	if err != nil {
-		return fmt.Errorf("decoding %s failed: %w", fname, err)
-	}
-
-	op := &oto.NewContextOptions{
-		SampleRate:   44100,
-		ChannelCount: 2,
-		Format:       oto.FormatSignedInt16LE,
-	}
-	otoCtx, readyChan, err := oto.NewContext(op)
-	if err != nil {
-		return fmt.Errorf("NewContext() %s failed: %w", fname, err)
-
-	}
-	<-readyChan
-	player := otoCtx.NewPlayer(decodedMp3)
-
-	player.Play()
-
-	for player.IsPlaying() {
-		time.Sleep(time.Millisecond)
-	}
-
-	err = player.Close()
-	if err != nil {
-		return fmt.Errorf("player.Close() %s failed: %w", fname, err)
-
-	}
 	return nil
 }

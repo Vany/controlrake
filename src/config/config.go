@@ -9,6 +9,7 @@ import (
 type Config struct {
 	BindAddress string
 	StaticRoot  string
+	SoundRoot   string
 	Widgets     []map[string]any
 }
 

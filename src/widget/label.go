@@ -29,6 +29,7 @@ func (w *Label) RenderTo(wr io.Writer) error {
 	return nil
 }
 
+// TODO move this to RegisterWidgetType()
 var TLabel = template.Must(template.New("Label").Parse(`
 <div class="widget" id="{{.Name}}">
 	<b>{{.Text}}</b>	

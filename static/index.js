@@ -1,16 +1,26 @@
 // ad astra per 𖫪
 
-(new Promise(function(resolve, reject) {
-    var server = new WebSocket("ws://localhost/ws");
-    server.onopen = () => resolve(server);
-    server.onerror = reject;
-    server.onmessage = onWSMessage;
-}))
-    .then((server) => WS = server)
-    .catch(console.log)
-;
+function ConnectWebsocket() {
+    (new Promise(function (resolve, reject) {
+        var server = new WebSocket("ws://localhost/ws");
+        server.onopen = () => resolve(server);
+        server.onerror = reject;
+        server.onmessage = onWSMessage;
+    }))
+        .then((server) => {
+            WS = server;
+            server.onclose = () => {setTimeout(ConnectWebsocket, 1000)};
+        })
+        .catch((err) => {
+            console.error(err);
+            setTimeout(ConnectWebsocket, 1000);
+        })
+    ;
+
+}
 
 
+ConnectWebsocket()
 
 fetch("/widgets/")
     .then((response) => response.text())
@@ -29,8 +39,8 @@ fetch("/widgets/")
 function Send(obj, msg) {
     let w = obj.closest(".widget")
     let name = w.id
-    WS.send(name + "|" +  msg)
     console.log(name, msg)
+    WS.send(name + "|" +  msg)
 }
 
 function onWSMessage(ev) {

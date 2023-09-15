@@ -59,7 +59,6 @@ func (h *LoggingHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	con := cont.FromContext(r.Context())
 	h.Handler.ServeHTTP(w, r)
 	con.Log.Info().Str("url", r.URL.String()).Send()
-
 }
 
 type WidgetList struct {
@@ -73,6 +72,8 @@ func (h *WidgetList) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// TODO keep ws registry ands send from SendChan to every of it
+
 func WShandle(ws *websocket.Conn) {
 	defer ws.Close()
 	ctx := ws.Request().Context()
@@ -80,13 +81,15 @@ func WShandle(ws *websocket.Conn) {
 	con.Log.Debug().Msg("I'm in ws handler")
 	widgets := con.Widgets
 
+	wsctx, cf := context.WithCancel(ctx)
+	defer cf()
 	go func() {
 		for {
 			select {
 			case msg := <-widgets.SendChan():
 				ws.Write([]byte(msg))
-			case <-ctx.Done():
-				break
+			case <-wsctx.Done():
+				return
 			}
 		}
 	}()
@@ -107,4 +110,6 @@ func WShandle(ws *websocket.Conn) {
 			con.Log.Info().Bytes("payload", b).Msg("websocket frame arrived")
 		}
 	}
+	con.Log.Debug().Msg("websocket close")
+
 }
