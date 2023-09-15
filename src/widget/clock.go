@@ -2,10 +2,7 @@ package widget
 
 import (
 	"context"
-	"fmt"
 	"github.com/vany/controlrake/src/cont"
-	"html/template"
-	"io"
 	"time"
 )
 
@@ -14,7 +11,19 @@ type Clock struct {
 	Format string
 }
 
-var _ = MustSurvive(RegisterWidgetType(&Clock{}))
+var _ = MustSurvive(RegisterWidgetType(&Clock{}, `
+<div class="widget" id="{{.Name}}">
+	<b>🕰️</b>	
+	
+	<script>
+		console.log("I'm here")
+		let self = document.getElementById("{{.Name}}")
+		self.onWSEvent = function (msg) {
+			self.getElementsByTagName("b")[0].innerHTML = msg
+		}
+	</script>
+</div>
+`))
 
 func (w *Clock) Init(ctx context.Context) error {
 	done := ctx.Done()
@@ -38,24 +47,3 @@ func (w *Clock) Init(ctx context.Context) error {
 
 	return nil
 }
-
-func (w *Clock) RenderTo(wr io.Writer) error {
-	if err := TClock.Execute(wr, w); err != nil {
-		return fmt.Errorf("render failed: %w", err)
-	}
-	return nil
-}
-
-var TClock = template.Must(template.New("Label").Parse(`
-<div class="widget" id="{{.Name}}">
-	<b>🕰️</b>	
-	
-	<script>
-		console.log("I'm here")
-		let self = document.getElementById("{{.Name}}")
-		self.onWSEvent = function (msg) {
-			self.getElementsByTagName("b")[0].innerHTML = msg
-		}
-	</script>
-</div>
-`))

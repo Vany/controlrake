@@ -8,6 +8,7 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/vany/controlrake/src/cont"
 	"github.com/vany/controlrake/src/types"
+	"html/template"
 	"io"
 	"reflect"
 
@@ -56,11 +57,16 @@ func NewRegistry(ctx context.Context, confs []map[string]any) types.WidgetRegist
 }
 
 var TypeRegistry = make(map[string]reflect.Type)
+var TemplateRegistry = make(map[string]*template.Template)
 
-func RegisterWidgetType(w Widget) error {
+func RegisterWidgetType(w Widget, tmplstring string) error {
 	t := reflect.TypeOf(w).Elem()
-	//v := reflect.ValueOf(w).Elem().Type()
 	TypeRegistry[t.Name()] = t
+	if tmpl, err := template.New(t.Name()).Parse(tmplstring); err != nil {
+		return fmt.Errorf("can't compile html template for %s: %w", t.Name(), err)
+	} else {
+		TemplateRegistry[t.Name()] = tmpl
+	}
 	return nil
 }
 
@@ -70,6 +76,7 @@ func New(ctx context.Context, cfg Config) Widget {
 	} else {
 		w := reflect.New(t).Interface().(Widget)
 		w.Base().Config = cfg
+		w.Base().Widget = w
 		MUST(w.Init(ctx))
 		return w
 	}
@@ -81,6 +88,7 @@ type Widget interface {
 	Consume(ctx context.Context, event []byte) error // consume one event from Websocket
 	Send(event string) error                         // Send something to all my visual representations
 	Base() *BaseWidget                               // access to common data
+	Actual() Widget                                  // pointer to actual widget
 }
 
 type Config struct {
@@ -91,6 +99,7 @@ type Config struct {
 
 type BaseWidget struct {
 	Config
+	Widget Widget
 }
 
 // Consume websocket message in separate goroutine
@@ -99,16 +108,24 @@ func (w *BaseWidget) Consume(ctx context.Context, event []byte) error {
 }
 
 func (w *BaseWidget) RenderTo(wr io.Writer) error {
-	_, err := wr.Write([]byte(w.Name + " => " + w.Type))
-	return err
+	if tmpl, ok := TemplateRegistry[w.Type]; !ok {
+		_, err := wr.Write([]byte(w.Name + " => " + w.Type))
+		return err
+	} else {
+		return tmpl.Execute(wr, w.Actual())
+	}
 }
 
 func (w *BaseWidget) Init(context.Context) error {
-	panic("unimplemented")
+	return nil
 }
 
 func (w *BaseWidget) Base() *BaseWidget {
 	return w
+}
+
+func (w *BaseWidget) Actual() Widget {
+	return w.Widget
 }
 
 func (w *BaseWidget) Send(msg string) error {
