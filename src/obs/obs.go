@@ -69,7 +69,7 @@ func (o *Obs) Cli() *goobs.Client {
 }
 
 func (o *Obs) Transaction(f func()) {
-	o.Mu.Lock()
-	defer o.Mu.Unlock()
+	//o.Mu.Lock()
+	//defer o.Mu.Unlock()
 	f()
 }

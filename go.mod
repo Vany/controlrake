@@ -3,7 +3,7 @@ module github.com/vany/controlrake
 go 1.21.0
 
 require (
-	github.com/andreykaipov/goobs v0.12.0
+	github.com/andreykaipov/goobs v0.12.1
 	github.com/ebitengine/oto/v3 v3.0.0
 	github.com/hajimehoshi/go-mp3 v0.3.4
 	github.com/mitchellh/mapstructure v1.5.0

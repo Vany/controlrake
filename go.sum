@@ -40,6 +40,8 @@ github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/andreykaipov/goobs v0.12.0 h1:EsV3QzqWO+FsrLFbzzKsZuHsdFAGp7F0nG9OiDWdaVs=
 github.com/andreykaipov/goobs v0.12.0/go.mod h1:EqG73Uu/4npyhXIWWszgRelNkEeIz+d0slUT6NKWYs4=
+github.com/andreykaipov/goobs v0.12.1 h1:KfVHfuvGFHg1MDi1muaKCwRxek3O4tzKcqBZmLDF8EA=
+github.com/andreykaipov/goobs v0.12.1/go.mod h1:9lCSWI7uZScJx05Hc0KnRtIItGjU8VpGV5dhONiiUgg=
 github.com/buger/jsonparser v1.1.1 h1:2PnMjfWD7wBILjqQbt530v576A/cAbQvEW9gGIpYMUs=
 github.com/buger/jsonparser v1.1.1/go.mod h1:6RYKKt7H4d4+iWqouImQ9R2FZql3VbhNgx27UK13J/0=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
