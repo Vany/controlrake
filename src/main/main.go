@@ -24,12 +24,11 @@ func main() {
 	ctx = cont.PutToContext(ctx, MUST2(config.ReadConfig(ctx)))
 	ctx = cont.PutToContext(ctx, types.NewLogger())
 	con := cont.FromContext(ctx)
-	ctx = cont.PutToContext(ctx, widget.NewRegistry(ctx, con.Cfg.Widgets))
 	ctx = cont.PutToContext(ctx, sound.New(ctx, con.Cfg.SoundRoot))
 	ctx = cont.PutToContext(ctx, obs.New(ctx))
+	ctx = cont.PutToContext(ctx, widget.NewRegistry(ctx, con.Cfg.Widgets))
 
 	// components.serve()
 
 	MUST(http.ListenAndServe(ctx))
-
 }

@@ -2,7 +2,7 @@
 
 function ConnectWebsocket() {
     let p = new Promise(function (resolve, reject) {
-        let server = new WebSocket("ws://localhost/ws");
+        let server = new WebSocket("ws://" + location.host + "/ws");
         server.onopen = () => resolve(server);
         server.onerror = reject;
         server.onmessage = onWSMessage;
