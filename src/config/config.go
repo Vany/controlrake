@@ -10,6 +10,7 @@ type Config struct {
 	BindAddress string
 	StaticRoot  string
 	SoundRoot   string
+	Obs         map[string]any
 	Widgets     []map[string]any
 }
 

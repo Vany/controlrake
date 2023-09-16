@@ -8,6 +8,7 @@ import (
 	"github.com/vany/controlrake/src/config"
 	"github.com/vany/controlrake/src/cont"
 	"github.com/vany/controlrake/src/http"
+	"github.com/vany/controlrake/src/obs"
 	"github.com/vany/controlrake/src/sound"
 	"github.com/vany/controlrake/src/types"
 	"github.com/vany/controlrake/src/widget"
@@ -25,6 +26,7 @@ func main() {
 	con := cont.FromContext(ctx)
 	ctx = cont.PutToContext(ctx, widget.NewRegistry(ctx, con.Cfg.Widgets))
 	ctx = cont.PutToContext(ctx, sound.New(ctx, con.Cfg.SoundRoot))
+	ctx = cont.PutToContext(ctx, obs.New(ctx))
 
 	// components.serve()
 

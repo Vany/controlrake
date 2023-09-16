@@ -12,7 +12,6 @@ type Clock struct {
 }
 
 var _ = MustSurvive(RegisterWidgetType(&Clock{}, `
-<div class="widget" id="{{.Name}}">
 	<b>🕰️</b>	
 	
 	<script>
@@ -22,7 +21,6 @@ var _ = MustSurvive(RegisterWidgetType(&Clock{}, `
 			self.getElementsByTagName("b")[0].innerHTML = msg
 		}
 	</script>
-</div>
 `))
 
 func (w *Clock) Init(ctx context.Context) error {

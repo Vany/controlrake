@@ -14,6 +14,7 @@ type Goodies struct {
 	Log     *types.Logger
 	Widgets types.WidgetRegistry
 	Sound   types.Sound
+	Obs     types.Obs
 }
 
 func PutToContext(ctx context.Context, obj any) context.Context {
@@ -31,6 +32,8 @@ func PutToContext(ctx context.Context, obj any) context.Context {
 		c.Widgets = to
 	case types.Sound:
 		c.Sound = to
+	case types.Obs:
+		c.Obs = to
 	default:
 		panic("unknown type in context container")
 	}

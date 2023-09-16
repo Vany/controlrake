@@ -46,6 +46,8 @@ func (r Registry) RenderTo(ctx context.Context, w io.Writer) error {
 	return nil
 }
 
+// TODO rember wiget order and render it in order
+// Todo decide how to arrange widgets
 func NewRegistry(ctx context.Context, confs []map[string]any) types.WidgetRegistry {
 	r := make(Registry)
 	for _, msa := range confs {
@@ -62,7 +64,9 @@ var TemplateRegistry = make(map[string]*template.Template)
 func RegisterWidgetType(w Widget, tmplstring string) error {
 	t := reflect.TypeOf(w).Elem()
 	TypeRegistry[t.Name()] = t
-	if tmpl, err := template.New(t.Name()).Parse(tmplstring); err != nil {
+	if tmpl, err := template.New(t.Name()).Parse(
+		`<div class="widget" id="{{.Name}}">` + tmplstring + `</div>`,
+	); err != nil {
 		return fmt.Errorf("can't compile html template for %s: %w", t.Name(), err)
 	} else {
 		TemplateRegistry[t.Name()] = tmpl

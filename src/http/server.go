@@ -78,16 +78,21 @@ func WShandle(ws *websocket.Conn) {
 	defer ws.Close()
 	ctx := ws.Request().Context()
 	con := cont.FromContext(ctx)
-	con.Log.Debug().Msg("I'm in ws handler")
+	con.Log.Debug().Msgf("I'm in ws handler %v", ws)
 	widgets := con.Widgets
 
 	wsctx, cf := context.WithCancel(ctx)
 	defer cf()
+
 	go func() {
 		for {
 			select {
 			case msg := <-widgets.SendChan():
-				ws.Write([]byte(msg))
+				if fw, err := ws.NewFrameWriter(websocket.TextFrame); err != nil {
+					con.Log.Error().Err(err).Msg("Can't create new websocket frame")
+				} else {
+					fw.Write([]byte(msg))
+				}
 			case <-wsctx.Done():
 				return
 			}
@@ -101,8 +106,15 @@ func WShandle(ws *websocket.Conn) {
 			break
 		}
 
+		if f.PayloadType() == websocket.CloseFrame {
+			con.Log.Debug().Msg("Client wants to quit")
+			break
+		}
+
 		con.Log.Debug().Interface("payload", f.PayloadType()).Msg("New WS frame")
+
 		b, err := io.ReadAll(f)
+
 		if err != nil {
 			con.Log.Error().Err(err).Msg("websocket frame failed")
 		} else {

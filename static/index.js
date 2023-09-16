@@ -1,22 +1,25 @@
 // ad astra per 𖫪
 
 function ConnectWebsocket() {
-    (new Promise(function (resolve, reject) {
-        var server = new WebSocket("ws://localhost/ws");
+    let p = new Promise(function (resolve, reject) {
+        let server = new WebSocket("ws://localhost/ws");
         server.onopen = () => resolve(server);
         server.onerror = reject;
         server.onmessage = onWSMessage;
-    }))
-        .then((server) => {
-            WS = server;
-            server.onclose = () => {setTimeout(ConnectWebsocket, 1000)};
-        })
-        .catch((err) => {
-            console.error(err);
-            setTimeout(ConnectWebsocket, 1000);
-        })
-    ;
+    })
 
+    p.then((server) => {
+        WS = server;
+        console.log("connected")
+        server.onclose = () => {
+            if (WS.readyState != WebSocket.CONNECTING) setTimeout(ConnectWebsocket, 1000);
+        };
+    })
+    .catch((err, ev) => {
+        console.error(err);
+        if (WS.readyState != WebSocket.CONNECTING) setTimeout(ConnectWebsocket, 1000);
+    })
+    ;
 }
 
 
@@ -26,6 +29,7 @@ fetch("/widgets/")
     .then((response) => response.text())
     .then((text) => {
         document.getElementById("content").innerHTML = text;
+        // TODO use css selector here
         for (let w of document.getElementsByClassName("widget")) {
             for (let s of w.getElementsByTagName("script")) {
                 eval(s.innerText);
@@ -39,8 +43,11 @@ fetch("/widgets/")
 function Send(obj, msg) {
     let w = obj.closest(".widget")
     let name = w.id
-    console.log(name, msg)
-    WS.send(name + "|" +  msg)
+    console.log("WS>", name, msg)
+    if (WS.readyState == WebSocket.OPEN)
+        WS.send(name + "|" +  msg)
+    else
+        console.log("Try to send to not open websocket");
 }
 
 function onWSMessage(ev) {

@@ -1,20 +1,22 @@
 StaticRoot: ./static
 SoundRoot: ./sounds
+
+Obs:
+  Server: localhost:4455
+  Password: DKTVCJDxSMeEkPLy
+
 Widgets:
-  - Name: "1"
-    Type: Label
-    Args: "First Label"
-
-  - Name: "2"
-    Type: Label
-    Args: "Second Label"
-
   - Name: "Cicadas"
     Type: Button
     Args:
       Sound: cri.mp3
 
-  - Name: Часики
-    Type: Clock
-    Args: "15:04:05 MST"
+#  - Name: Часики
+#    Type: Clock
+#    Args: "15:04:05 MST"
 
+  - Name: ObsRecord
+    Type: ObsRecord
+
+  - Name: ObsStream
+    Type: ObsStream
