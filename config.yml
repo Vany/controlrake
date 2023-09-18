@@ -1,3 +1,4 @@
+BindAddress:  ":8888"
 StaticRoot: ./static
 SoundRoot: ./sounds
 
