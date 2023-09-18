@@ -1,4 +1,5 @@
-// Widget is inner representation of functionality, taht connects web and server part.
+// package widget: Widget is inner representation of functionality, that connects web and server part.
+
 package widget
 
 import (
