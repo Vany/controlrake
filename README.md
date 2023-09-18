@@ -1,5 +1,6 @@
 
 [![Go Report][goreport-img]][goreport-url]
+[goreport-img]: https://goreportcard.com/badge/github.com/vany/controlrake?logo=go&logoColor=white&style=flat-square
 [goreport-url]: https://goreportcard.com/report/github.com/vany/controlrake
 
 # controlrake
