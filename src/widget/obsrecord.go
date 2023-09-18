@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/andreykaipov/goobs/api/requests/record"
 	"github.com/vany/controlrake/src/cont"
+	"github.com/vany/controlrake/src/obs"
 	. "github.com/vany/pirog"
 	"strings"
 	"time"
@@ -46,8 +47,13 @@ func (w *ObsRecord) Init(ctx context.Context) error {
 		for {
 			select {
 			case <-time.Tick(time.Second):
-				var inf *record.GetRecordStatusResponse
-				con.Obs.Transaction(func() { inf = con.Obs.InfoRecord(ctx) })
+				o := con.Obs.(*obs.Obs)
+				inf, err := obs.Wrapper(ctx, o, func() (*record.GetRecordStatusResponse, error) {
+					return o.Client.Record.GetRecordStatus()
+				})
+				if err != nil {
+					con.Log.Error().Err(err).Msg("obs failed to GetRecordStatus()")
+				}
 				tarr := strings.SplitN(inf.OutputTimecode, ":", 3)
 				var length string
 				if len(tarr) > 1 {
@@ -74,17 +80,24 @@ func (w *ObsRecord) Init(ctx context.Context) error {
 
 func (w *ObsRecord) Consume(ctx context.Context, event []byte) error {
 	con := cont.FromContext(ctx)
+	o := con.Obs.(*obs.Obs)
 	con.Log.Log().Bytes("event", event).Msg("Pressed")
 	var err error
-	con.Obs.Transaction(func() {
-		switch string(event) {
-		case "rec":
-			_, err = con.Obs.Cli().Record.ToggleRecord()
-		case "pause":
-			_, err = con.Obs.Cli().Record.ToggleRecordPause()
-		default:
-			err = fmt.Errorf("unknown event %s", event)
-		}
-	})
+
+	switch string(event) {
+	case "rec":
+		_, err = obs.Wrapper(ctx, o, func() (*record.ToggleRecordResponse, error) {
+			return o.Client.Record.ToggleRecord()
+		})
+
+	case "pause":
+		_, err = obs.Wrapper(ctx, o, func() (*record.ToggleRecordPauseResponse, error) {
+			return o.Client.Record.ToggleRecordPause()
+		})
+
+	default:
+		err = fmt.Errorf("unknown event %s", event)
+	}
+
 	return err
 }

@@ -16,14 +16,17 @@ import (
 )
 
 // all of initialized widgets (from config)
-type Registry map[string]Widget
+type Registry struct {
+	Map   map[string]Widget // Registered widgets
+	Order []string          // order which widgets was in config
+}
 
-func (r Registry) Consume(ctx context.Context, b []byte) {
+func (r *Registry) Consume(ctx context.Context, b []byte) {
 	go func() {
 		parts := bytes.SplitN(b, []byte{'|'}, 2)
 		name := string(parts[0])
 
-		if w, ok := r[name]; !ok {
+		if w, ok := r.Map[name]; !ok {
 			SendChan <- "error|" + fmt.Sprintf("widget %s not found", name)
 			return
 		} else if err := w.Consume(ctx, parts[1]); err != nil {
@@ -34,32 +37,32 @@ func (r Registry) Consume(ctx context.Context, b []byte) {
 
 var SendChan = make(chan string)
 
-func (r Registry) SendChan() chan string { return SendChan }
+func (r *Registry) SendChan() chan string { return SendChan }
 
-func (r Registry) RenderTo(ctx context.Context, w io.Writer) error {
-	for k, v := range r {
-		if err := v.RenderTo(w); err != nil {
-			cont.FromContext(ctx).Log.Error().Err(err).Msgf("%s render failed", k)
-			return v.Base().Errorf("%s render failed", k)
+func (r *Registry) RenderTo(ctx context.Context, wr io.Writer) error {
+	for _, n := range r.Order {
+		w := r.Map[n]
+		if err := w.RenderTo(wr); err != nil {
+			cont.FromContext(ctx).Log.Error().Err(err).Msgf("%s render failed", n)
+			return w.Base().Errorf("%s render failed", n)
 		}
 	}
 	return nil
 }
 
-// TODO rember wiget order and render it in order
-// Todo decide how to arrange widgets
 func NewRegistry(ctx context.Context, confs []map[string]any) types.WidgetRegistry {
-	r := make(Registry)
+	r := Registry{Map: make(map[string]Widget)}
 	for _, msa := range confs {
 		cfg := Config{}
 		mapstructure.Decode(msa, &cfg)
-		r[cfg.Name] = New(ctx, cfg)
+		r.Map[cfg.Name] = New(ctx, cfg)
+		r.Order = append(r.Order, cfg.Name)
 	}
-	return r
+	return &r
 }
 
-var TypeRegistry = make(map[string]reflect.Type)
-var TemplateRegistry = make(map[string]*template.Template)
+var TypeRegistry = make(map[string]reflect.Type)           // typename => widgettype
+var TemplateRegistry = make(map[string]*template.Template) // typename => html.template
 
 func RegisterWidgetType(w Widget, tmplstring string) error {
 	t := reflect.TypeOf(w).Elem()
@@ -96,9 +99,10 @@ type Widget interface {
 }
 
 type Config struct {
-	Name string
-	Type string
-	Args any
+	Name    string // Unique widget id
+	Type    string // Type of widget class
+	Caption string // Text to render in widget if it is a button or something like this
+	Args    any    // Widget specific config
 }
 
 type BaseWidget struct {

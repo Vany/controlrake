@@ -2,13 +2,13 @@ package obs
 
 import (
 	"context"
+	"fmt"
 	"github.com/andreykaipov/goobs"
-	"github.com/andreykaipov/goobs/api/requests/record"
 	"github.com/mitchellh/mapstructure"
 	"github.com/vany/controlrake/src/cont"
 	"github.com/vany/controlrake/src/types"
-	"github.com/vany/pirog"
-	"sync"
+	. "github.com/vany/pirog"
+	"time"
 )
 
 type Config struct {
@@ -19,7 +19,7 @@ type Config struct {
 type Obs struct {
 	Config
 	Client *goobs.Client
-	Mu     sync.Mutex // TODO remove it after library will be fixed
+	Cancel func()
 }
 
 // TODO provide logger to goobs
@@ -27,25 +27,40 @@ type Obs struct {
 
 func New(ctx context.Context) types.Obs {
 	con := cont.FromContext(ctx)
-	cfg := Config{}
-	mapstructure.Decode(con.Cfg.Obs, &cfg)
-	obs := &Obs{
-		Config: cfg,
-		Client: pirog.MUST2(goobs.New(cfg.Server, goobs.WithPassword(cfg.Password))),
-	}
+	obs := &Obs{}
+	mapstructure.Decode(con.Cfg.Obs, &obs.Config)
+
+	obs.Init(ctx)
 	//logger := con.Log.With().Str("component", "OBS").Logger()
 	//obs.Client.Log = &logger
 
-	go func() {
-		<-ctx.Done()
-		obs.Transaction(func() {
-			// todo why is it not return control flow
-			err := obs.Client.Disconnect()
-			cont.FromContext(ctx).Log.Debug().Err(err).Msg("obs shut down")
-		})
-	}()
-
 	return obs
+}
+
+func (o *Obs) Init(ctx context.Context) {
+	cfctx, cf := context.WithCancel(ctx)
+	o.Cancel = cf
+	o.Client = nil
+
+	go func() {
+		pause := time.Microsecond
+	OUT:
+		for {
+			select {
+			case <-time.After(pause):
+				if c, err := goobs.New(o.Config.Server, goobs.WithPassword(o.Config.Password)); err != nil {
+					pause = TERNARY(pause > 10*time.Second, 10*time.Second, pause*2)
+				} else {
+					o.Client = c
+					break OUT
+				}
+			}
+		}
+
+		<-cfctx.Done()
+		err := o.Client.Disconnect()
+		cont.FromContext(ctx).Log.Debug().Err(err).Msg("obs shut down")
+	}()
 }
 
 func (o *Obs) Scenes(ctx context.Context) any {
@@ -56,20 +71,28 @@ func (o *Obs) Scenes(ctx context.Context) any {
 	}
 }
 
-func (o *Obs) InfoRecord(ctx context.Context) *record.GetRecordStatusResponse {
-	ret, err := o.Client.Record.GetRecordStatus()
-	if err != nil {
-		cont.FromContext(ctx).Log.Error().Err(err).Msg("obs GetRecordStatus failed")
-	}
-	return ret
-}
-
 func (o *Obs) Cli() *goobs.Client {
 	return o.Client
 }
 
-func (o *Obs) Transaction(f func()) {
-	//o.Mu.Lock()
-	//defer o.Mu.Unlock()
-	f()
+// TODO  make channel reading with timeout here instead of .Client polling (MAKE IT FRAMEWORK to pirog)
+// even not actual todo, rewrite this place if we will have more than one obs connection
+var cantConnect = fmt.Errorf("cant connect to obs for five seconds")
+
+func Wrapper[T any](ctx context.Context, o *Obs, f func() (T, error)) (T, error) {
+	var zero T
+	cnt := 5
+	for o.Client == nil {
+		<-time.After(time.Second)
+		if cnt--; cnt < 0 {
+			return zero, cantConnect
+		}
+	}
+	if ret, err := f(); err != nil {
+		o.Cancel()
+		o.Init(ctx)
+		return zero, err
+	} else {
+		return ret, nil
+	}
 }

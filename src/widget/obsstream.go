@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/andreykaipov/goobs/api/requests/stream"
+	"github.com/vany/controlrake/src/obs"
 	"strings"
 	"time"
 
@@ -50,9 +51,11 @@ func (w *ObsStream) Init(ctx context.Context) error {
 		for {
 			select {
 			case <-time.Tick(time.Second):
-				var inf *stream.GetStreamStatusResponse
-				var err error
-				con.Obs.Transaction(func() { inf, err = con.Obs.Cli().Stream.GetStreamStatus() })
+				o := con.Obs.(*obs.Obs)
+				inf, err := obs.Wrapper(ctx, o, func() (*stream.GetStreamStatusResponse, error) {
+					return o.Client.Stream.GetStreamStatus()
+				})
+
 				if err != nil {
 					con.Log.Error().Err(err).Msg("Stream.GetStreamStatus() failed")
 				} else {

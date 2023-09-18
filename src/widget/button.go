@@ -18,7 +18,7 @@ type Button struct {
 }
 
 var _ = MustSurvive(RegisterWidgetType(&Button{}, `
-<button onClick="Send(this, 'Boo')">⚙</button>
+<button onClick="Send(this, 'Boo')">{{.Caption}}</button>
 `))
 
 func (w *Button) Init(context.Context) error {

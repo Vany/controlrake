@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/andreykaipov/goobs"
-	"github.com/andreykaipov/goobs/api/requests/record"
 	"io"
 )
 
@@ -30,7 +29,5 @@ type Sound interface {
 }
 
 type Obs interface {
-	InfoRecord(ctx context.Context) *record.GetRecordStatusResponse // get info about recording process
-	Cli() *goobs.Client                                             // get raw client
-	Transaction(func())                                             // do something exclusive
+	Cli() *goobs.Client // get raw client
 }

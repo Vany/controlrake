@@ -41,9 +41,9 @@ fetch("/widgets/")
 
 //var WS = new WebSocket
 function Send(obj, msg) {
-    let w = obj.closest(".widget")
-    let name = w.id
-    console.log("WS>", name, msg)
+    let w = obj.closest(".widget");
+    let name = w.id;
+    console.log("WS>", name, msg);
     if (WS.readyState == WebSocket.OPEN)
         WS.send(name + "|" +  msg)
     else
@@ -54,10 +54,6 @@ function onWSMessage(ev) {
     const [name, data] = ev.data.split("|", 2);
     let w = document.getElementById(name);
     let f = w.onWSEvent;
-    if (f != null) f(data)
+    if (f != null) f(data);
     else console.log(name, " have no ws event listener");
 }
-
-
-
-

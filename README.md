@@ -1,3 +1,7 @@
+
+[![Go Report][goreport-img]][goreport-url]
+[goreport-url]: https://goreportcard.com/report/github.com/vany/controlrake
+
 # controlrake
 Contorl deck for streaming and other activities. Web interface on small device controls server on streaming device.
 
