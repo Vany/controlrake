@@ -19,3 +19,9 @@ You can attend it every monday/wensday/friday evening.
 
 ## live ideas and progress traking
 https://gist.github.com/Vany/d7263fa45e39b38cef91f63d9d7e3caa
+
+
+
+
+### sob =(
+sound system not work on linux. Pls fix it

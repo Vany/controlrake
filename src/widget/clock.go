@@ -2,7 +2,7 @@ package widget
 
 import (
 	"context"
-	"github.com/vany/controlrake/src/cont"
+	"github.com/vany/controlrake/src/app"
 	"time"
 )
 
@@ -37,7 +37,7 @@ func (w *Clock) Init(ctx context.Context) error {
 			case t := <-time.Tick(time.Second):
 				w.Send(t.Format(w.Format))
 			case <-done:
-				cont.FromContext(ctx).Log.Info().Msg("Clock shut down")
+				app.FromContext(ctx).Log.Info().Msg("Clock shut down")
 				break STOP
 			}
 		}

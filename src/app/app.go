@@ -1,4 +1,4 @@
-package cont
+package app
 
 import (
 	"context"
@@ -9,18 +9,18 @@ import (
 var Key = struct{}{}
 
 // container with all my goodies
-type Goodies struct {
-	Cfg     *config.Config
-	Log     *types.Logger
-	Widgets types.WidgetRegistry
-	Sound   types.Sound
-	Obs     types.Obs
+type App struct {
+	Cfg        *config.Config
+	Log        *types.Logger
+	Widgets    types.WidgetRegistry
+	Obs        types.Obs
+	ObsBrowser types.ObsBrowser
 }
 
-func PutToContext(ctx context.Context, obj any) context.Context {
+func PutToApp(ctx context.Context, obj any) context.Context {
 	c := FromContext(ctx)
 	if c == nil {
-		c = &Goodies{}
+		c = &App{}
 		ctx = context.WithValue(ctx, Key, c)
 	}
 	switch to := obj.(type) {
@@ -30,21 +30,21 @@ func PutToContext(ctx context.Context, obj any) context.Context {
 		c.Log = to
 	case types.WidgetRegistry:
 		c.Widgets = to
-	case types.Sound:
-		c.Sound = to
 	case types.Obs:
 		c.Obs = to
+	case types.ObsBrowser:
+		c.ObsBrowser = to
 	default:
 		panic("unknown type in context container")
 	}
 	return ctx
 }
 
-func FromContext(ctx context.Context) *Goodies {
+func FromContext(ctx context.Context) *App {
 	c := ctx.Value(Key) // or die
 	if c == nil {
 		return nil
 	} else {
-		return c.(*Goodies)
+		return c.(*App)
 	}
 }

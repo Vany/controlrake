@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/andreykaipov/goobs/api/requests/record"
-	"github.com/vany/controlrake/src/cont"
+	"github.com/vany/controlrake/src/app"
 	"github.com/vany/controlrake/src/obs"
 	. "github.com/vany/pirog"
 	"strings"
@@ -41,7 +41,7 @@ type ObsRecordInfo struct {
 
 func (w *ObsRecord) Init(ctx context.Context) error {
 	done := ctx.Done()
-	con := cont.FromContext(ctx)
+	con := app.FromContext(ctx)
 	go func() {
 	STOP:
 		for {
@@ -79,7 +79,7 @@ func (w *ObsRecord) Init(ctx context.Context) error {
 }
 
 func (w *ObsRecord) Consume(ctx context.Context, event []byte) error {
-	con := cont.FromContext(ctx)
+	con := app.FromContext(ctx)
 	o := con.Obs.(*obs.Obs)
 	con.Log.Log().Bytes("event", event).Msg("Pressed")
 	var err error

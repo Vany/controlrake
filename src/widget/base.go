@@ -7,7 +7,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/mitchellh/mapstructure"
-	"github.com/vany/controlrake/src/cont"
+	"github.com/vany/controlrake/src/app"
 	"github.com/vany/controlrake/src/types"
 	"html/template"
 	"io"
@@ -22,7 +22,7 @@ type Registry struct {
 	Order []string          // order which widgets was in config
 }
 
-func (r *Registry) Consume(ctx context.Context, b []byte) {
+func (r *Registry) Dispatch(ctx context.Context, b []byte) error {
 	go func() {
 		parts := bytes.SplitN(b, []byte{'|'}, 2)
 		name := string(parts[0])
@@ -34,6 +34,7 @@ func (r *Registry) Consume(ctx context.Context, b []byte) {
 			SendChan <- "error|" + w.Base().Errorf("can't consume: %s", err).Error()
 		}
 	}()
+	return nil
 }
 
 var SendChan = make(chan string)
@@ -44,7 +45,7 @@ func (r *Registry) RenderTo(ctx context.Context, wr io.Writer) error {
 	for _, n := range r.Order {
 		w := r.Map[n]
 		if err := w.RenderTo(wr); err != nil {
-			cont.FromContext(ctx).Log.Error().Err(err).Msgf("%s render failed", n)
+			app.FromContext(ctx).Log.Error().Err(err).Msgf("%s render failed", n)
 			return w.Base().Errorf("%s render failed", n)
 		}
 	}
@@ -68,8 +69,10 @@ var TemplateRegistry = make(map[string]*template.Template) // typename => html.t
 func RegisterWidgetType(w Widget, tmplstring string) error {
 	t := reflect.TypeOf(w).Elem()
 	TypeRegistry[t.Name()] = t
-	if tmpl, err := template.New(t.Name()).Parse(
-		`<div class="widget" id="{{.Name}}">` + tmplstring + `</div>`,
+	if tmpl, err := template.New(t.Name()).Funcs(map[string]any{
+		"UnEscape": func(s string) template.JS { return template.JS(s) },
+	}).Parse(
+		`<div class="widget" id={{.Name}}>` + tmplstring + `</div>`,
 	); err != nil {
 		return fmt.Errorf("can't compile html template for %s: %w", t.Name(), err)
 	} else {

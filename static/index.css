@@ -4,3 +4,7 @@ div.widget {
     margin: 2px;
     border-radius: 2px;
 }
+
+div.widget button {
+    background-color: transparent;
+}

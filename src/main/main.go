@@ -6,11 +6,11 @@ package main
 import (
 	"context"
 	"github.com/mdp/qrterminal/v3"
+	"github.com/vany/controlrake/src/app"
 	"github.com/vany/controlrake/src/config"
-	"github.com/vany/controlrake/src/cont"
 	"github.com/vany/controlrake/src/http"
 	"github.com/vany/controlrake/src/obs"
-	"github.com/vany/controlrake/src/sound"
+	"github.com/vany/controlrake/src/obsbrowser"
 	"github.com/vany/controlrake/src/types"
 	"github.com/vany/controlrake/src/widget"
 	. "github.com/vany/pirog"
@@ -25,12 +25,12 @@ func main() {
 
 	ctx, cf := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cf()
-	ctx = cont.PutToContext(ctx, MUST2(config.ReadConfig(ctx)))
-	ctx = cont.PutToContext(ctx, types.NewLogger())
-	con := cont.FromContext(ctx)
-	ctx = cont.PutToContext(ctx, sound.New(ctx, con.Cfg.SoundRoot))
-	ctx = cont.PutToContext(ctx, obs.New(ctx))
-	ctx = cont.PutToContext(ctx, widget.NewRegistry(ctx, con.Cfg.Widgets))
+	ctx = app.PutToApp(ctx, MUST2(config.ReadConfig(ctx)))
+	ctx = app.PutToApp(ctx, types.NewLogger())
+	con := app.FromContext(ctx)
+	ctx = app.PutToApp(ctx, obs.New(ctx))
+	ctx = app.PutToApp(ctx, widget.NewRegistry(ctx, con.Cfg.Widgets))
+	ctx = app.PutToApp(ctx, obsbrowser.New(ctx))
 
 	GetMyAddrs(ctx)
 
@@ -62,7 +62,7 @@ func GetMyAddrs(ctx context.Context) {
 	}
 
 	println("Please connect to:")
-	con := cont.FromContext(ctx)
+	con := app.FromContext(ctx)
 	bindparts := strings.SplitN(con.Cfg.BindAddress, ":", 2)
 	if len(bindparts) < 2 {
 		bindparts[0] = ""

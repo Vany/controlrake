@@ -1,11 +1,46 @@
 <html>
+
 <head>
     <script src="index.js"></script>
     <link rel="stylesheet" href="index.css">
 </head>
+
 <body>
-<div id = "content">
-    Content
-</div>
+    <div id = "content">
+        Content
+    </div>
 </body>
+
+
+<script defer>
+    ConnectWebsocket("ws");
+    FetchWidgets();
+
+    function onWSMessage(ev) {
+        const [name, data] = ev.data.split("|", 2);
+        let w = document.getElementById(name);
+        let f = w.onWSEvent;
+        if (f != null) f(data);
+        else console.log(name, " have no ws event listener");
+    }
+
+    const canWakeLock = () => 'wakeLock' in navigator;
+    let wakelock;
+    async function lockWakeState() {
+        if(!canWakeLock()) return;
+        try {
+            wakelock = await navigator.wakeLock.request();
+            wakelock.addEventListener('release', () => {
+                console.log('Screen Wake State Locked:', !wakelock.released);
+            });
+            console.log('Screen Wake State Locked:', !wakelock.released);
+        } catch(e) {
+            console.error('Failed to lock wake state with reason:', e.message);
+        }
+    }
+
+    lockWakeState();
+
+</script>
+
 </html>

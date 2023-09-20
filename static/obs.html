@@ -1,0 +1,51 @@
+<html>
+<head>
+    <script src="index.js"></script>
+</head>
+<body>
+</body>
+<script defer>
+    ConnectWebsocket("wsobs");
+
+    const  SendObject = (uuid) => (msg) => {
+        WS.send(uuid + "|" + msg)
+    }
+
+
+    function onWSMessage(ev) {
+        console.log(ev)
+        const [uuid, name, data] = ev.data.split("|", 3);
+        handlers[name](SendObject(uuid), data)
+    }
+
+    // TODO make it promises with finally so("done")
+    const handlers = {
+        "PlaySound": function (so, data) {
+            A.play("/sound/" + data, so)
+        }
+    }
+
+    const A = {
+        a: null, // new Audio(),
+        so: () => {},
+        play: function(url, so) {
+            if (this.a != null) this.close();
+            this.a = new Audio(url);
+            this.so = so;
+            this.a.play();
+            setTimeout(() => {this.tick()}, 1000)
+        },
+        tick: function() {
+            if (this.a.currentTime >= this.a.duration) return this.close();
+            this.so(this.a.currentTime / this.a.duration)
+            setTimeout(() => {this.tick()}, 1000)
+        },
+        close: function() {
+            this.so("done");
+            this.a = null;
+        },
+    }
+
+
+</script>
+</html>

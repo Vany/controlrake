@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/andreykaipov/goobs"
 	"github.com/mitchellh/mapstructure"
-	"github.com/vany/controlrake/src/cont"
+	"github.com/vany/controlrake/src/app"
 	"github.com/vany/controlrake/src/types"
 	. "github.com/vany/pirog"
 	"time"
@@ -26,7 +26,7 @@ type Obs struct {
 // TODO subscriptions in New()
 
 func New(ctx context.Context) types.Obs {
-	con := cont.FromContext(ctx)
+	con := app.FromContext(ctx)
 	obs := &Obs{}
 	mapstructure.Decode(con.Cfg.Obs, &obs.Config)
 
@@ -59,7 +59,7 @@ func (o *Obs) Init(ctx context.Context) {
 
 		<-cfctx.Done()
 		err := o.Client.Disconnect()
-		cont.FromContext(ctx).Log.Debug().Err(err).Msg("obs shut down")
+		app.FromContext(ctx).Log.Debug().Err(err).Msg("obs shut down")
 	}()
 }
 

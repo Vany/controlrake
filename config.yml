@@ -11,46 +11,53 @@ Widgets:
     Type: Button
     Caption: 👏
     Args:
-      Sound: Applause.mp3
+      Action: PlaySound|Applause.mp3
 
   - Name: cri
     Type: Button
     Caption: 🦟
     Args:
-      Sound: cri.mp3
+      Action: PlaySound|cri.mp3
 
   - Name: crickets
     Type: Button
     Caption: 🦟🦟
     Args:
-      Sound: crickets.mp3
+      Action: PlaySound|crickets.mp3
 
   - Name: kidsyes
     Type: Button
     Caption: 👶
     Args:
-      Sound: kids_yes.mp3
+      Action: PlaySound|kids_yes.mp3
 
   - Name: laughting
     Type: Button
     Caption: 🤣
     Args:
-      Sound: Laughing.mp3
+      Action: PlaySound|Laughing.mp3
 
   - Name: mario
     Type: Button
     Caption: ⛑️
     Args:
-      Sound: mario.mp3
+      Action: PlaySound|mario.mp3
 
   - Name: xfiles
     Type: Button
     Caption: 👽
     Args:
-      Sound: xfiles.mp3
+      Action: PlaySound|xfiles.mp3
 
   - Name: hrbr1
     Type: HrBr
+
+  - Name: ObsHtmlMario
+    Type: Button
+    Caption: ⛑
+    Args:
+      Action: PlaySound|mario.mp3
+
 
 
 #  - Name: Часики

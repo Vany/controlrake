@@ -4,8 +4,7 @@ go 1.21.0
 
 require (
 	github.com/andreykaipov/goobs v0.12.1
-	github.com/ebitengine/oto/v3 v3.0.0
-	github.com/hajimehoshi/go-mp3 v0.3.4
+	github.com/google/uuid v1.1.2
 	github.com/mdp/qrterminal/v3 v3.1.1
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/rs/zerolog v1.30.0
@@ -18,7 +17,6 @@ require (
 require (
 	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/ebitengine/purego v0.5.0-alpha // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect

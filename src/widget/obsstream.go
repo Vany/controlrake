@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 	"github.com/andreykaipov/goobs/api/requests/stream"
+	"github.com/vany/controlrake/src/app"
 	"github.com/vany/controlrake/src/obs"
 	"strings"
 	"time"
 
-	"github.com/vany/controlrake/src/cont"
 	. "github.com/vany/pirog"
 )
 
@@ -45,7 +45,7 @@ type ObsStreamInfo struct {
 
 func (w *ObsStream) Init(ctx context.Context) error {
 	done := ctx.Done()
-	con := cont.FromContext(ctx)
+	con := app.FromContext(ctx)
 	go func() {
 	STOP:
 		for {

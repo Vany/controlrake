@@ -4,8 +4,8 @@ import (
 	"context"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"github.com/vany/controlrake/src/app"
 	"github.com/vany/controlrake/src/config"
-	"github.com/vany/controlrake/src/cont"
 	"testing"
 )
 
@@ -14,7 +14,7 @@ func Test_Context(t *testing.T) {
 	ctx := context.Background()
 	ctx = config.ReadConfigToContext(ctx)
 
-	cfg, _ := cont.FromContext(ctx)
+	cfg, _ := app.FromContext(ctx)
 	assert.True(t, len(cfg.Widgets) > 0)
 
 	//cfg.Widgets = append(cfg.Widgets, types.Widget{})
