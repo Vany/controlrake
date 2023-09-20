@@ -9,6 +9,7 @@ release:
 	cp config.yml release/
 	mv controlrake_darwin release/
 	mv controlrake_windows.exe release/
+	mv controlrake_linux release/
 	mkdir release/sounds release/static
 	cp -r sounds release/
 	cp -r static release/

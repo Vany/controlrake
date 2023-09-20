@@ -14,7 +14,7 @@ Or monitors state and shows it on corresponding widget
 ## The show
 In fact all development process is a show. 
 You can attend it every monday/wensday/friday evening.
-[on twitch](https://www.twitch.tv/vanyserezhkin)
+[on twitch](https://www.twitch.tv/vanyserezhkin) or [Youtube](https://www.youtube.com/@vanyserezhkin)
 
 
 ## live ideas and progress traking
