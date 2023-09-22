@@ -12,7 +12,7 @@ var Key = struct{}{}
 type App struct {
 	Cfg        *config.Config
 	Log        *types.Logger
-	Widgets    types.WidgetRegistry
+	Widget     types.WidgetRegistry
 	Obs        types.Obs
 	ObsBrowser types.ObsBrowser
 }
@@ -29,7 +29,7 @@ func PutToApp(ctx context.Context, obj any) context.Context {
 	case *types.Logger:
 		c.Log = to
 	case types.WidgetRegistry:
-		c.Widgets = to
+		c.Widget = to
 	case types.Obs:
 		c.Obs = to
 	case types.ObsBrowser:

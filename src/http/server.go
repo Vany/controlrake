@@ -54,8 +54,8 @@ func Mux(ctx context.Context) http.Handler {
 
 	mux.Handle("/widgets/", &WidgetList{})
 
-	widgets := con.Widgets
-	mux.Handle("/ws", websocket.Handler(CreateWsHandleFunc(widgets.SendChan(), widgets.Dispatch)))
+	w := con.Widget
+	mux.Handle("/ws", websocket.Handler(CreateWsHandleFunc(w.SendChan(), w.Dispatch)))
 
 	ow := con.ObsBrowser
 	mux.Handle("/wsobs", websocket.Handler(CreateWsHandleFunc(ow.SendChan(), ow.Dispatch)))
@@ -77,7 +77,7 @@ type WidgetList struct {
 
 func (h *WidgetList) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	con := app.FromContext(r.Context())
-	if err := con.Widgets.RenderTo(r.Context(), w); err != nil {
+	if err := con.Widget.RenderTo(r.Context(), w); err != nil {
 		con.Log.Error().Err(err).Send()
 	}
 }

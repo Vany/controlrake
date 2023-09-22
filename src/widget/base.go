@@ -1,67 +1,16 @@
 // package widget: Widget is inner representation of functionality, that connects web and server part.
-
 package widget
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"github.com/mitchellh/mapstructure"
-	"github.com/vany/controlrake/src/app"
-	"github.com/vany/controlrake/src/types"
 	"html/template"
 	"io"
 	"reflect"
 
 	. "github.com/vany/pirog"
 )
-
-// all of initialized widgets (from config)
-type Registry struct {
-	Map   map[string]Widget // Registered widgets
-	Order []string          // order which widgets was in config
-}
-
-func (r *Registry) Dispatch(ctx context.Context, b []byte) error {
-	go func() {
-		parts := bytes.SplitN(b, []byte{'|'}, 2)
-		name := string(parts[0])
-
-		if w, ok := r.Map[name]; !ok {
-			SendChan <- "error|" + fmt.Sprintf("widget %s not found", name)
-			return
-		} else if err := w.Consume(ctx, parts[1]); err != nil {
-			SendChan <- "error|" + w.Base().Errorf("can't consume: %s", err).Error()
-		}
-	}()
-	return nil
-}
-
-var SendChan = make(chan string)
-
-func (r *Registry) SendChan() chan string { return SendChan }
-
-func (r *Registry) RenderTo(ctx context.Context, wr io.Writer) error {
-	for _, n := range r.Order {
-		w := r.Map[n]
-		if err := w.RenderTo(wr); err != nil {
-			app.FromContext(ctx).Log.Error().Err(err).Msgf("%s render failed", n)
-			return w.Base().Errorf("%s render failed", n)
-		}
-	}
-	return nil
-}
-
-func NewRegistry(ctx context.Context, confs []map[string]any) types.WidgetRegistry {
-	r := Registry{Map: make(map[string]Widget)}
-	for _, msa := range confs {
-		cfg := Config{}
-		mapstructure.Decode(msa, &cfg)
-		r.Map[cfg.Name] = New(ctx, cfg)
-		r.Order = append(r.Order, cfg.Name)
-	}
-	return &r
-}
 
 var TypeRegistry = make(map[string]reflect.Type)           // typename => widgettype
 var TemplateRegistry = make(map[string]*template.Template) // typename => html.template
@@ -72,7 +21,8 @@ func RegisterWidgetType(w Widget, tmplstring string) error {
 	if tmpl, err := template.New(t.Name()).Funcs(map[string]any{
 		"UnEscape": func(s string) template.JS { return template.JS(s) },
 	}).Parse(
-		`<div class="widget" id={{.Name}}>` + tmplstring + `</div>`,
+		`<div class="widget" id={{.Name}} {{if .Style}}style="{{.Style}}"{{end}}>` + tmplstring + `</div>`,
+		//`<div class="widget" id={{.Name}} >` + tmplstring + `</div>`,
 	); err != nil {
 		return fmt.Errorf("can't compile html template for %s: %w", t.Name(), err)
 	} else {
@@ -81,45 +31,54 @@ func RegisterWidgetType(w Widget, tmplstring string) error {
 	return nil
 }
 
-func New(ctx context.Context, cfg Config) Widget {
+// TODO this isn't great
+var sendchan = make(chan string)
+
+func New(ctx context.Context, cfga any) Widget {
+	cfg := Config{}
+	mapstructure.Decode(cfga, &cfg)
 	if t, ok := TypeRegistry[cfg.Type]; !ok {
 		panic("unknown widget type: " + cfg.Type)
 	} else {
 		w := reflect.New(t).Interface().(Widget)
 		w.Base().Config = cfg
 		w.Base().Widget = w
+		w.Base().Chan = sendchan
 		MUST(w.Init(ctx))
 		return w
 	}
 }
 
 type Widget interface {
-	Init(ctx context.Context) error                  // init widget with config in it's base
-	RenderTo(writer io.Writer) error                 // render visual representation
-	Consume(ctx context.Context, event []byte) error // consume one event from Websocket
-	Send(event string) error                         // Send something to all my visual representations
-	Base() *BaseWidget                               // access to common data
-	Actual() Widget                                  // pointer to actual widget
+	Init(ctx context.Context) error                   // init widget with config in it's base
+	RenderTo(ctx context.Context, wr io.Writer) error // render visual representation
+	Dispatch(ctx context.Context, event []byte) error // consume one event from Websocket
+	SendChan() chan string                            // get channel where out messages is
+	Send(event string) error                          // Send something to all my visual representations
+	Base() *BaseWidget                                // access to common data
+	Actual() Widget                                   // pointer to actual widget
 }
 
 type Config struct {
 	Name    string // Unique widget id
 	Type    string // Type of widget class
 	Caption string // Text to render in widget if it is a button or something like this
+	Style   string // css style for this widget only
 	Args    any    // Widget specific config
 }
 
 type BaseWidget struct {
 	Config
-	Widget Widget
+	Widget Widget      // link to actual widget object
+	Chan   chan string // channel to interact with visual representation
 }
 
 // Consume websocket message in separate goroutine
-func (w *BaseWidget) Consume(ctx context.Context, event []byte) error {
-	return w.Errorf("Consume() is not implemented")
+func (w *BaseWidget) Dispatch(ctx context.Context, event []byte) error {
+	return w.Errorf("Dispatch() is not implemented")
 }
 
-func (w *BaseWidget) RenderTo(wr io.Writer) error {
+func (w *BaseWidget) RenderTo(ctx context.Context, wr io.Writer) error {
 	if tmpl, ok := TemplateRegistry[w.Type]; !ok {
 		_, err := wr.Write([]byte(w.Name + " => " + w.Type))
 		return err
@@ -128,7 +87,7 @@ func (w *BaseWidget) RenderTo(wr io.Writer) error {
 	}
 }
 
-func (w *BaseWidget) Init(context.Context) error {
+func (w *BaseWidget) Init(ctx context.Context) error {
 	return nil
 }
 
@@ -140,13 +99,15 @@ func (w *BaseWidget) Actual() Widget {
 	return w.Widget
 }
 
+func (w *BaseWidget) SendChan() chan string { return w.Chan }
+
 func (w *BaseWidget) Send(msg string) error {
-	SendChan <- w.Name + "|" + msg
+	w.Chan <- w.Name + "|" + msg
 	return nil
 }
 
 func (w *BaseWidget) Errorf(f string, args ...any) error {
-	return fmt.Errorf("name: %s, type: %s "+f, w.Name, w.Type, args)
+	return fmt.Errorf("%s(%s)"+f, append([]any{w.Type, w.Name}, args...)...)
 }
 
 func MustSurvive(err error) struct{} {

@@ -6,66 +6,87 @@ Obs:
   Server: localhost:4455
   Password: DKTVCJDxSMeEkPLy
 
-Widgets:
-  - Name: Applause
-    Type: Button
-    Caption: 👏
+Widget:
+  - Name: C
+    Type: Container
+    Style: 'display: grid; grid-template-columns: 1fr 1fr'
     Args:
-      Action: PlaySound|Applause.mp3
+      - Name: Buttons
+        Type: Container
+        Style: 'align: left'
+        Args:
+        - Name: Applause
+          Type: Button
+          Caption: 👏
+          Args:
+           Action: PlaySound|Applause.mp3
 
-  - Name: cri
-    Type: Button
-    Caption: 🦟
-    Args:
-      Action: PlaySound|cri.mp3
+        - Name: Applause
+          Type: Button
+          Caption: 👏
+          Args:
+            Action: PlaySound|Applause.mp3
 
-  - Name: crickets
-    Type: Button
-    Caption: 🦟🦟
-    Args:
-      Action: PlaySound|crickets.mp3
+        - Name: cri
+          Type: Button
+          Caption: 🦟
+          Args:
+            Action: PlaySound|cri.mp3
 
-  - Name: kidsyes
-    Type: Button
-    Caption: 👶
-    Args:
-      Action: PlaySound|kids_yes.mp3
+        - Name: crickets
+          Type: Button
+          Caption: 🦟🦟
+          Args:
+            Action: PlaySound|crickets.mp3
 
-  - Name: laughting
-    Type: Button
-    Caption: 🤣
-    Args:
-      Action: PlaySound|Laughing.mp3
+        - Name: kidsyes
+          Type: Button
+          Caption: 👶
+          Args:
+            Action: PlaySound|kids_yes.mp3
 
-  - Name: mario
-    Type: Button
-    Caption: ⛑️
-    Args:
-      Action: PlaySound|mario.mp3
+        - Name: laughting
+          Type: Button
+          Caption: 🤣
+          Args:
+            Action: PlaySound|Laughing.mp3
 
-  - Name: xfiles
-    Type: Button
-    Caption: 👽
-    Args:
-      Action: PlaySound|xfiles.mp3
+        - Name: mario
+          Type: Button
+          Caption: ⛑️
+          Args:
+            Action: PlaySound|mario.mp3
 
-  - Name: hrbr1
-    Type: HrBr
+        - Name: xfiles
+          Type: Button
+          Caption: 👽
+          Args:
+            Action: PlaySound|xfiles.mp3
 
-  - Name: ObsHtmlMario
-    Type: Button
-    Caption: ⛑
-    Args:
-      Action: PlaySound|mario.mp3
+#        - Name: hrbr1
+#          Type: HrBr
 
+        - Name: ObsHtmlMario
+          Type: Button
+          Caption: ⛑
+          Args:
+            Action: PlaySound|mario.mp3
 
+      #  - Name: Часики
+      #    Type: Clock
+      #    Args: "15:04:05 MST"
 
-#  - Name: Часики
-#    Type: Clock
-#    Args: "15:04:05 MST"
+        - Name: ObsRecord
+          Type: ObsRecord
 
-  - Name: ObsRecord
-    Type: ObsRecord
+        - Name: ObsStream
+          Type: ObsStream
 
-  - Name: ObsStream
-    Type: ObsStream
+      - Name: ChatContainer
+        Type: Container
+        Style: 'align: right'
+        Args:
+          - Name: ChatWidget
+            Type: Label
+            Style: 'display: block'
+            Caption: Right&nbsp;Label

@@ -78,7 +78,7 @@ func (w *ObsRecord) Init(ctx context.Context) error {
 	return nil
 }
 
-func (w *ObsRecord) Consume(ctx context.Context, event []byte) error {
+func (w *ObsRecord) Dispatch(ctx context.Context, event []byte) error {
 	con := app.FromContext(ctx)
 	o := con.Obs.(*obs.Obs)
 	con.Log.Log().Bytes("event", event).Msg("Pressed")

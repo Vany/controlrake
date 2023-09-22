@@ -38,13 +38,12 @@ function FetchWidgets() {
     ;
 }
 
-
-//var WS = new WebSocket
 function Send(obj, msg) {
-    let w = obj.closest(".widget");
-    let name = w.id;
-    if (WS.readyState == WebSocket.OPEN)
-        WS.send(name + "|" +  msg)
+    let pa  = obj.parentNode.closest(".widget");
+    if (pa) {
+        Send(pa, obj.id + "|" + msg)
+    } else if (WS.readyState == WebSocket.OPEN)
+        WS.send(msg)
     else
         console.error("Try to send to not open websocket");
 }

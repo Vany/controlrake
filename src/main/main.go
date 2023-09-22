@@ -29,7 +29,7 @@ func main() {
 	ctx = app.PutToApp(ctx, types.NewLogger())
 	con := app.FromContext(ctx)
 	ctx = app.PutToApp(ctx, obs.New(ctx))
-	ctx = app.PutToApp(ctx, widget.NewRegistry(ctx, con.Cfg.Widgets))
+	ctx = app.PutToApp(ctx, widget.New(ctx, con.Cfg.Widget))
 	ctx = app.PutToApp(ctx, obsbrowser.New(ctx))
 
 	GetMyAddrs(ctx)
@@ -71,7 +71,6 @@ func GetMyAddrs(ctx context.Context) {
 	}
 	for _, addr := range ass {
 		conn := "http://" + addr + bindparts[0] + "/"
-		println(conn)
 		qrterminal.Generate(conn, qrterminal.M, os.Stdout)
 	}
 }

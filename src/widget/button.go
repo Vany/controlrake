@@ -23,7 +23,7 @@ var _ = MustSurvive(RegisterWidgetType(&Button{}, `
 <script>
 	let self = document.getElementById({{.Name}})
 	self.onclick = function() {
-		Send(this,"click")	
+		Send(this,"click")
 	};
 	{{if ne .Args.Action "" }} // button have an action
 	self.onclick = function() {
@@ -56,7 +56,7 @@ func (w *Button) Init(context.Context) error {
 	return TERNARY(err == nil, nil, w.Errorf("cant read config %#v: %w", w.Config.Args, err))
 }
 
-func (w *Button) Consume(ctx context.Context, event []byte) error {
+func (w *Button) Dispatch(ctx context.Context, event []byte) error {
 	app := app.FromContext(ctx)
 	app.Log.Log().Bytes("event", event).Msg("Pressed")
 

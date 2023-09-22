@@ -5,5 +5,5 @@ type Label struct {
 }
 
 var _ = MustSurvive(RegisterWidgetType(&Label{}, `
-	<b>{{.Args}}</b>
+	<b>{{.Caption}}</b>
 `))

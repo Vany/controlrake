@@ -11,7 +11,7 @@ type Config struct {
 	StaticRoot  string
 	SoundRoot   string
 	Obs         map[string]any
-	Widgets     []map[string]any
+	Widget      map[string]any
 }
 
 func ReadConfig(ctx context.Context) (*Config, error) {
