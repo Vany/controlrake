@@ -12,7 +12,7 @@ release:
 	mv controlrake_linux release/
 	mkdir release/sounds release/static
 	cp -r sounds release/
-	cp -r static release/
+	cp -r static release    /
 	cp LICENSE release/
 	cp README.md release/
 	(pushd release; tar -czf ../controlrake.tgz *)

@@ -34,12 +34,12 @@ var _ = MustSurvive(RegisterWidgetType(&Button{}, `
 	self.onWSEvent = function (msg) {
 		if (msg == "done") return self.style.background = {{UnEscape .Name}}_Background;
 		// msg float from 0 to 1
-		saturation =  Math.round(0x77 * msg)    // 0 -> 77
-		self.style.background = "#" + saturation.toString(16) + (0xff - saturation).toString(16) + saturation.toString(16); 
-
+		saturation =  Math.round(0xff * msg)    // 0 -> ff
+		
+		let bgcolor = "#" + saturation.toString(16).padStart(2, "0") + "ff" + saturation.toString(16).padStart(2, "0"); 
+		self.style.background = bgcolor;
+		console.log(msg + " => " + bgcolor);
 	}
-
-
 		
 	{{end}}
 	
