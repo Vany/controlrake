@@ -1,11 +1,16 @@
 <html>
 <head>
     <script src="index.js"></script>
+    <link rel="stylesheet" href="obs.css">
 </head>
 <body>
+
+<div align="center" valign="center" id="content"></div>
+
 </body>
 <script defer>
     ConnectWebsocket("wsobs");
+    const content = document.getElementById("content")
 
     const  SendObject = (uuid) => (msg) => {
         WS.send(uuid + "|" + msg)
@@ -15,37 +20,77 @@
     function onWSMessage(ev) {
         console.log(ev)
         const [uuid, name, data] = ev.data.split("|", 3);
-        handlers[name](SendObject(uuid), data)
+        handlers[name].run(data, SendObject(uuid))
     }
+
 
     // TODO make it promises with finally so("done")
     const handlers = {
-        "PlaySound": function (so, data) {
-            A.play("/sound/" + data, so)
+        Html: {
+            till: 0,
+            timer: null,
+            so: () => {
+            },
+            run: function (html, so) {
+                if (this.till) this.close();
+                content.innerHTML = '<div width="100%" height="100%">' + html +"</div>";
+                this.timer = document.getElementById("timerspan");
+                if (this.timer) {
+                    let dur = this.timer.innerText;
+                    this.till = new Date(Date.now() + dur * 1000);
+                }
+                this.so = so;
+                setTimeout(() => {
+                    this.tick()
+                }, 1000)
+            },
+            tick: function () {
+                this.so(0.5) // TODO calc it properly
+                if (this.timer) {
+                    let d = this.till - Date.now();
+                    this.timer.innerHTML = (d > 0 ? "" : "-") + (new Date(Math.abs(d))).toISOString().substring(11, 19);
+                    if (d > 0 || this.timer.style.display != "none") setTimeout(() => {
+                        this.tick()
+                    }, 1000)
+                    else this.close();
+                }
+            },
+            close: function () {
+                this.so("done");
+                this.timer = null;
+                this.till = 0;
+                content.innerHTML = "";
+            },
+        },
+
+        PlaySound: {
+            a: null, // new Audio(),
+            so: () => {
+            },
+            run: function (data, so) {
+                let url = "/sound/" + data;
+                if (this.a != null) this.close();
+                this.a = new Audio(url);
+                this.so = so;
+                this.a.play();
+                setTimeout(() => {
+                    this.tick()
+                }, 1000)
+            },
+            tick: function () {
+                if (this.a.currentTime >= this.a.duration) return this.close();
+                this.so(this.a.currentTime / this.a.duration)
+                setTimeout(() => {
+                    this.tick()
+                }, 1000)
+            },
+            close: function () {
+                this.so("done");
+                this.a.pause();
+                this.a = null;
+            },
         }
-    }
-
-    const A = {
-        a: null, // new Audio(),
-        so: () => {},
-        play: function(url, so) {
-            if (this.a != null) this.close();
-            this.a = new Audio(url);
-            this.so = so;
-            this.a.play();
-            setTimeout(() => {this.tick()}, 1000)
-        },
-        tick: function() {
-            if (this.a.currentTime >= this.a.duration) return this.close();
-            this.so(this.a.currentTime / this.a.duration)
-            setTimeout(() => {this.tick()}, 1000)
-        },
-        close: function() {
-            this.so("done");
-            this.a = null;
-        },
-    }
-
+    };
 
 </script>
 </html>

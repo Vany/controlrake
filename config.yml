@@ -19,49 +19,57 @@ Widget:
           Type: Button
           Caption: 👏
           Args:
-           Action: PlaySound|Applause.mp3
+           Action:
+            PlaySound: Applause.mp3
 
         - Name: Applause
           Type: Button
           Caption: 👏
           Args:
-            Action: PlaySound|Applause.mp3
+            Action:
+              PlaySound: Applause.mp3
 
         - Name: cri
           Type: Button
           Caption: 🦟
           Args:
-            Action: PlaySound|cri.mp3
+            Action:
+              PlaySound: cri.mp3
 
         - Name: crickets
           Type: Button
           Caption: 🦟🦟
           Args:
-            Action: PlaySound|crickets.mp3
+            Action:
+              PlaySound: crickets.mp3
 
         - Name: kidsyes
           Type: Button
           Caption: 👶
           Args:
-            Action: PlaySound|kids_yes.mp3
+            Action:
+              PlaySound: kids_yes.mp3
 
         - Name: laughting
           Type: Button
           Caption: 🤣
           Args:
-            Action: PlaySound|Laughing.mp3
+            Action:
+              PlaySound: Laughing.mp3
 
         - Name: mario
           Type: Button
           Caption: ⛑️
           Args:
-            Action: PlaySound|mario.mp3
+            Action:
+              PlaySound: mario.mp3
 
         - Name: xfiles
           Type: Button
           Caption: 👽
           Args:
-            Action: PlaySound|xfiles.mp3
+            Action:
+              PlaySound: xfiles.mp3
 
 #        - Name: hrbr1
 #          Type: HrBr
@@ -70,7 +78,8 @@ Widget:
           Type: Button
           Caption: ⛑
           Args:
-            Action: PlaySound|mario.mp3
+            Action:
+              PlaySound: mario.mp3
 
       #  - Name: Часики
       #    Type: Clock
@@ -81,6 +90,35 @@ Widget:
 
         - Name: ObsStream
           Type: ObsStream
+
+        - Name: BioAfk
+          Type: Button
+          Caption: 🚽️
+          Args:
+            Action:
+              Html: <img align="center" width="100%" height="90%" src="/static/obs/6666.gif"><br><div class="wrapper"><span id="timerspan">10</span></div>
+
+        - Name: LongBioAfk
+          Type: Button
+          Caption: 🚽🚽
+          Args:
+            Action:
+              Html: <img align="center" src="/static/obs/6666.gif"><br><span id="timerspan">600</span>
+
+
+        - Name: StopBioAfk
+          Type: Button
+          Caption: 🛑
+          Args:
+            Action:
+              Html: <span style="display:none" id="timerspan">0</span>
+
+        - Name: FreezeScreen
+          Type: Button
+          Caption: 🥶
+          Args:
+            Action:
+              Html: <font size="8196">🥶</font> <span style="display:none" id="timerspan">15</span>
 
       - Name: ChatContainer
         Type: Container

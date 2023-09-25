@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"sync"
 )
 
 func ListenAndServe(ctx context.Context) error {
@@ -35,7 +36,7 @@ func ListenAndServe(ctx context.Context) error {
 }
 
 func Mux(ctx context.Context) http.Handler {
-	con := app.FromContext(ctx)
+	app := app.FromContext(ctx)
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/static/", 302)
@@ -44,23 +45,26 @@ func Mux(ctx context.Context) http.Handler {
 	const sta = "/static/"
 	mux.Handle(sta,
 		http.StripPrefix(sta,
-			http.FileServer(http.Dir(con.Cfg.StaticRoot)),
+			http.FileServer(http.Dir(app.Cfg.StaticRoot)),
 		))
 
 	mux.Handle("/sound/",
 		http.StripPrefix("/sound/",
-			http.FileServer(http.Dir(con.Cfg.SoundRoot)),
+			http.FileServer(http.Dir(app.Cfg.SoundRoot)),
 		))
 
-	mux.Handle("/widgets/", &WidgetList{})
-
-	w := con.Widget
-	mux.Handle("/ws", websocket.Handler(CreateWsHandleFunc(w.SendChan(), w.Dispatch)))
-
-	ow := con.ObsBrowser
-	mux.Handle("/wsobs", websocket.Handler(CreateWsHandleFunc(ow.SendChan(), ow.Dispatch)))
+	mux.HandleFunc("/widgets/", RederWidgets)
+	mux.Handle("/ws", websocket.Handler(CreateWsHandleFunc(ctx, app.Widget)))
+	mux.Handle("/wsobs", websocket.Handler(CreateWsHandleFunc(ctx, app.ObsBrowser)))
 
 	return &LoggingHandler{mux}
+}
+
+func RederWidgets(w http.ResponseWriter, r *http.Request) {
+	con := app.FromContext(r.Context())
+	if err := con.Widget.RenderTo(r.Context(), w); err != nil {
+		con.Log.Error().Err(err).Send()
+	}
 }
 
 type LoggingHandler struct{ http.Handler }
@@ -71,18 +75,14 @@ func (h *LoggingHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	con.Log.Info().Str("url", r.URL.String()).Send()
 }
 
-type WidgetList struct {
-	http.Header
+// WsSubsystem - subsystem with chan for websocket
+type WsSubsystem interface {
+	Dispatch(ctx context.Context, b []byte) error // receive event from obs browser html
+	SendChan() chan string                        // channel from server to page
 }
 
-func (h *WidgetList) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	con := app.FromContext(r.Context())
-	if err := con.Widget.RenderTo(r.Context(), w); err != nil {
-		con.Log.Error().Err(err).Send()
-	}
-}
-
-func CreateWsHandleFunc(send chan string, receive func(context.Context, []byte) error) func(conn *websocket.Conn) {
+func CreateWsHandleFunc(ctx context.Context, subsystem WsSubsystem) func(conn *websocket.Conn) {
+	cpc := COPYCHAN(ctx.Done(), subsystem.SendChan())
 	return func(ws *websocket.Conn) {
 		defer ws.Close()
 		ctx := ws.Request().Context()
@@ -91,6 +91,9 @@ func CreateWsHandleFunc(send chan string, receive func(context.Context, []byte) 
 
 		wsctx, cf := context.WithCancel(ctx)
 		defer cf()
+
+		send, senddetroy := cpc()
+		defer senddetroy()
 
 		go func() {
 			for {
@@ -127,7 +130,7 @@ func CreateWsHandleFunc(send chan string, receive func(context.Context, []byte) 
 				con.Log.Error().Err(err).Msg("websocket frame failed")
 			} else {
 
-				if err := receive(ctx, b); err != nil {
+				if err := subsystem.Dispatch(ctx, b); err != nil {
 					con.Log.Error().Err(err).Msg("Receiver failed")
 				} else {
 					con.Log.Info().Bytes("payload", b).Msg("websocket frame arrived")
@@ -138,4 +141,44 @@ func CreateWsHandleFunc(send chan string, receive func(context.Context, []byte) 
 
 	}
 
+}
+
+func COPYCHAN[T any](done <-chan struct{}, src chan T) (
+	generator func() (tap chan T, destructor func()),
+) {
+	var mu sync.RWMutex
+	chans := make(map[chan T]struct{})
+
+	go func() {
+		for {
+			select {
+			case msg := <-src:
+				mu.RLock()
+				for c, _ := range chans {
+					c <- msg
+				}
+				mu.RUnlock()
+			case <-done:
+				mu.Lock()
+				for c, _ := range chans {
+					close(c)
+					delete(chans, c)
+				}
+				mu.Unlock()
+				return
+			}
+		}
+	}()
+
+	return func() (tap chan T, destructor func()) {
+		ret := make(chan T)
+		mu.Lock()
+		chans[ret] = struct{}{}
+		mu.Unlock()
+		return ret, func() {
+			mu.Lock()
+			delete(chans, ret)
+			mu.Unlock()
+		}
+	}
 }

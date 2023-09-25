@@ -2,14 +2,19 @@ package widget
 
 import (
 	"context"
+	"fmt"
 	"github.com/mitchellh/mapstructure"
 	"github.com/vany/controlrake/src/app"
 	. "github.com/vany/pirog"
 )
 
 type ButtonArgs struct {
-	Action string
-	Sound  string
+	Action *struct {
+		PlaySound   string
+		File        string
+		Html        string
+		CommandLine string
+	}
 }
 
 type Button struct {
@@ -22,15 +27,18 @@ var _ = MustSurvive(RegisterWidgetType(&Button{}, `
 
 <script>
 	let self = document.getElementById({{.Name}})
+	{{if not .Args.Action }} // button have an action
 	self.onclick = function() {
 		Send(this,"click")
 	};
-	{{if ne .Args.Action "" }} // button have an action
+	{{else}}
 	self.onclick = function() {
 		Send(this,"click");
 		self.style.background = "#00ff00";
 	};
+
 	{{UnEscape .Name}}_Background = self.style.background;
+
 	self.onWSEvent = function (msg) {
 		if (msg == "done") return self.style.background = {{UnEscape .Name}}_Background;
 		// msg float from 0 to 1
@@ -56,14 +64,36 @@ func (w *Button) Init(context.Context) error {
 	return TERNARY(err == nil, nil, w.Errorf("cant read config %#v: %w", w.Config.Args, err))
 }
 
+// TODO 🔴REFACTOR!!!!🔴  yes, we can!!!🟢
 func (w *Button) Dispatch(ctx context.Context, event []byte) error {
 	app := app.FromContext(ctx)
 	app.Log.Log().Bytes("event", event).Msg("Pressed")
 
-	if w.Args.Sound != "" {
+	if w.Args.Action == nil {
+		return w.Errorf(".Action is nil")
+	}
 
-	} else if w.Args.Action != "" {
-		sendObj := app.ObsBrowser.Send(ctx, w.Args.Action)
+	if w.Args.Action.PlaySound != "" {
+		sendObj := app.ObsBrowser.Send(ctx, "PlaySound|"+w.Args.Action.PlaySound)
+		go func() {
+			for {
+				select {
+				case msg := <-sendObj.Receive():
+					app.Log.Debug().Str("msg", msg).Msg("WS Got")
+					w.Send(msg)
+				case <-sendObj.Done():
+					app.Log.Debug().Msg("WS Closed")
+					w.Send("done")
+					return
+				case <-ctx.Done():
+					return
+				}
+			}
+		}()
+	}
+
+	if w.Args.Action.Html != "" {
+		sendObj := app.ObsBrowser.Send(ctx, fmt.Sprintf("Html|%s", w.Args.Action.Html))
 		go func() {
 			for {
 				select {

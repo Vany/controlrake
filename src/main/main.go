@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github.com/mdp/qrterminal/v3"
 	"github.com/vany/controlrake/src/app"
 	"github.com/vany/controlrake/src/config"
@@ -71,6 +72,7 @@ func GetMyAddrs(ctx context.Context) {
 	}
 	for _, addr := range ass {
 		conn := "http://" + addr + bindparts[0] + "/"
+		fmt.Println(" => " + conn)
 		qrterminal.Generate(conn, qrterminal.M, os.Stdout)
 	}
 }
