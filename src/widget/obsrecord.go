@@ -53,6 +53,7 @@ func (w *ObsRecord) Init(ctx context.Context) error {
 				})
 				if err != nil {
 					con.Log.Error().Err(err).Msg("obs failed to GetRecordStatus()")
+					continue
 				}
 				tarr := strings.SplitN(inf.OutputTimecode, ":", 3)
 				var length string
