@@ -1,24 +1,39 @@
 package tests
 
 import (
-	"context"
-	"github.com/spf13/viper"
-	"github.com/stretchr/testify/assert"
-	"github.com/vany/controlrake/src/app"
-	"github.com/vany/controlrake/src/config"
+	ty "go/types"
 	"testing"
 )
 
-func Test_Context(t *testing.T) {
-	viper.AddConfigPath("../")
-	ctx := context.Background()
-	ctx = config.ReadConfigToContext(ctx)
+type A struct {
+	A int
+}
 
-	cfg, _ := app.FromContext(ctx)
-	assert.True(t, len(cfg.Widgets) > 0)
+type B struct {
+	A struct {
+		C string
+	}
+	B int
+}
 
-	//cfg.Widgets = append(cfg.Widgets, types.Widget{})
-	//
-	//ctx = types.WithValues(ctx, cfg)
+func (A) UnmarshalJSON(b []byte) error {
+	return nil
+}
+
+func (B) UnmarshalJSON(b []byte) error {
+	return nil
+}
+
+type Object interface {
+	UnmarshalJSON(b []byte) error
+}
+
+func (o Object) UnmarshalJSON(b []byte) error {
+	*o = B{}
+	ty.Checker{}
+	return nil
+}
+
+func Test_X(t *testing.T) {
 
 }

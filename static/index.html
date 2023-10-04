@@ -24,6 +24,20 @@
         else console.log(name, " have no ws event listener");
     }
 
+    function FetchWidgets() {
+        fetch("/widgets/")
+            .then((response) => response.text())
+            .then((text) => {
+                let c = document.getElementById("content");
+                c.innerHTML = text
+                for (let s of c.getElementsByTagName("script")) {
+                    eval(s.innerText);
+                }
+            });
+    }
+
+
+
     const canWakeLock = () => 'wakeLock' in navigator;
     let wakelock;
     async function lockWakeState() {

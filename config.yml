@@ -91,6 +91,9 @@ Widget:
         - Name: ObsStream
           Type: ObsStream
 
+        - Name: Scenes
+          Type: Scenes
+
         - Name: BioAfk
           Type: Button
           Caption: 🚽️

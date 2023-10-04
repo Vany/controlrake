@@ -63,14 +63,6 @@ func (o *Obs) Init(ctx context.Context) {
 	}()
 }
 
-func (o *Obs) Scenes(ctx context.Context) any {
-	if sc, err := o.Client.Scenes.GetSceneList(); err != nil {
-		return err
-	} else {
-		return sc
-	}
-}
-
 func (o *Obs) Cli() *goobs.Client {
 	return o.Client
 }
