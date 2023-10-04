@@ -28,7 +28,6 @@ var _ = MustSurvive(RegisterWidgetType(&Scenes{}, `
 		const inf = JSON.parse(msg);	
 		let sel = self.getElementsByTagName("select")[0];
 		sel.innerHTML = "";
-		console.log(inf.scenes);
 		inf.scenes.forEach(s => {
 			let selected = (inf.currentProgramSceneName == s.sceneName ? "selected" : ""); 
 			let xxx = '<option ' + selected + '>' + s.sceneName + "</option>";

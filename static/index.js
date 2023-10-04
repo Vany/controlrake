@@ -1,30 +1,28 @@
 // ad astra per 𖫪
 
+var WS = new WebSocket(null);
+
 function ConnectWebsocket(handler) {
     let addr = "ws://" + location.host + "/" + handler
-    let p = new Promise(function (resolve, reject) {
-        let server = new WebSocket(addr);
-        server.onopen = () => resolve(server);
-        server.onerror = reject;
-        server.onmessage = onWSMessage;
-        server.SendBuffer = [];
-    })
+    let sb =  WS ? WS.SendBuffer : [];
+    WS = new WebSocket(addr);
+    WS.onmessage = onWSMessage;
+    WS.SendBuffer = sb;
 
-    p.then((server) => {
-        WS = server;
+    WS.onopen = () => {
         console.log("ws connected to " + handler)
         for (let msg in WS.SendBuffer) {
             WS.send(msg)
         }
-        server.onclose = () => {
+        WS.onclose = () => {
             if (WS.readyState != WebSocket.CONNECTING) setTimeout(() => ConnectWebsocket(handler), 1000);
         };
-    })
-    .catch((err, ev) => {
+    };
+
+    WS.onerror = () => {
         console.error(err);
         if (WS.readyState != WebSocket.CONNECTING) setTimeout(() => ConnectWebsocket(handler), 1000);
-    })
-    ;
+    };
 }
 
 function Send(obj, msg) {
