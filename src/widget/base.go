@@ -31,9 +31,6 @@ func RegisterWidgetType(w Widget, tmplstring string) error {
 	return nil
 }
 
-// TODO this isn't great
-var sendchan = make(chan string)
-
 func New(ctx context.Context, cfga any) Widget {
 	cfg := Config{}
 	mapstructure.Decode(cfga, &cfg)
@@ -43,14 +40,16 @@ func New(ctx context.Context, cfga any) Widget {
 		w := reflect.New(t).Interface().(Widget)
 		w.Base().Config = cfg
 		w.Base().Widget = w
-		w.Base().Chan = sendchan
 		return w
 	}
 }
 
 func (w *BaseWidget) InitStage1(ctx context.Context) error {
-	println("widget init1")
+	if w.Chan == nil {
+		w.Chan = make(chan string)
+	}
 	w.Widget.Init(ctx)
+
 	InitChildren(ctx, w.Widget)
 	return nil
 }
