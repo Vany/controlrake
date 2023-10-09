@@ -29,8 +29,7 @@
         Html: {
             till: 0,
             timer: null,
-            so: () => {
-            },
+            so: () => {},
             run: function (html, so) {
                 if (this.till) this.close();
                 content.innerHTML = '<div width="100%" height="100%">' + html +"</div>";
@@ -65,8 +64,7 @@
 
         PlaySound: {
             a: null, // new Audio(),
-            so: () => {
-            },
+            so: () => {},
             run: function (data, so) {
                 let url = "/sound/" + data;
                 if (this.a != null) this.close();
@@ -89,6 +87,17 @@
                 this.a.pause();
                 this.a = null;
             },
+        },
+
+        Eval: {
+            run: function(data, so) {
+                try {
+                    so(eval(data))
+                } catch (e) {
+                    so(e)
+                }
+                so("done");
+            }
         }
     };
 

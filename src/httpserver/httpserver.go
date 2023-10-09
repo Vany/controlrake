@@ -1,20 +1,28 @@
-package http
+package httpserver
 
 import (
 	"context"
+	"fmt"
 	"github.com/vany/controlrake/src/app"
 	"golang.org/x/net/websocket"
 	"io"
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 )
 
-func ListenAndServe(ctx context.Context) error {
+type HTTPServer struct {
+	Server             *http.Server
+	HandlersToRegister map[string]http.Handler
+}
+
+func New(ctx context.Context) (*HTTPServer, error) {
+	s := new(HTTPServer)
 	con := app.FromContext(ctx)
-	httpServer := http.Server{
+	s.HandlersToRegister = make(map[string]http.Handler)
+	s.Server = &http.Server{
 		Addr:        con.Cfg.BindAddress,
-		Handler:     Mux(ctx),
 		ConnState:   nil,
 		BaseContext: func(net.Listener) context.Context { return ctx },
 	}
@@ -22,20 +30,42 @@ func ListenAndServe(ctx context.Context) error {
 	go func() {
 		select {
 		case <-ctx.Done():
-			httpServer.Shutdown(ctx)
+			s.Server.Shutdown(ctx)
 		}
 	}()
 
-	if err := httpServer.ListenAndServe(); err == http.ErrServerClosed {
-		app.FromContext(ctx).Log.Info().Msg("http server shut down gracefully")
-	} else {
-		return err
-	}
+	return s, nil
+}
 
+func (s *HTTPServer) RegisterHandler(path string, handler http.Handler) {
+	s.HandlersToRegister[path] = handler
+}
+
+func (s *HTTPServer) InitStage1(ctx context.Context) error {
+	s.Server.Handler = s.Mux(ctx)
+	go func() {
+		if err := s.Server.ListenAndServe(); err == http.ErrServerClosed {
+			app.FromContext(ctx).Log.Info().Msg("http server shut down gracefully")
+		} else {
+			panic("can't http server: " + err.Error())
+		}
+	}()
 	return nil
 }
 
-func Mux(ctx context.Context) http.Handler {
+func (s *HTTPServer) GetBaseUrl(host string) string {
+	ba := s.Server.Addr
+	bindparts := strings.SplitN(ba, ":", 2)
+	if len(bindparts) < 2 {
+		bindparts[0] = ""
+	} else {
+		bindparts[0] = ":" + bindparts[1]
+	}
+
+	return "http://" + host + bindparts[0] + "/"
+}
+
+func (s *HTTPServer) Mux(ctx context.Context) http.Handler {
 	app := app.FromContext(ctx)
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -53,14 +83,36 @@ func Mux(ctx context.Context) http.Handler {
 			http.FileServer(http.Dir(app.Cfg.SoundRoot)),
 		))
 
-	mux.HandleFunc("/widgets/", RederWidgets)
+	mux.HandleFunc("/googleoauth2", GoogleOAUTH2(ctx))
+
+	mux.HandleFunc("/widgets/", RenderWidgets)
 	mux.Handle("/ws", websocket.Handler(CreateWsHandleFunc(ctx, app.Widget)))
 	mux.Handle("/wsobs", websocket.Handler(CreateWsHandleFunc(ctx, app.ObsBrowser)))
+
+	for path, handler := range s.HandlersToRegister {
+		mux.Handle(path, handler)
+	}
+	s.HandlersToRegister = nil
 
 	return &LoggingHandler{mux}
 }
 
-func RederWidgets(w http.ResponseWriter, r *http.Request) {
+// TODO put this to youtube package
+func GoogleOAUTH2(ctx context.Context) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		app := app.FromContext(ctx)
+		code := r.FormValue("code")
+		w.Header().Set("Content-Type", "text/plain")
+		fmt.Fprintf(w, "Received code: %v\r\nYou can now safely close this browser window.", code)
+		if cch := app.Youtube.GetCodeChan(); cch == nil {
+			app.Log.Error().Msg("Codechan is nil")
+		} else {
+			cch <- code
+		}
+	}
+}
+
+func RenderWidgets(w http.ResponseWriter, r *http.Request) {
 	con := app.FromContext(r.Context())
 	if err := con.Widget.RenderTo(r.Context(), w); err != nil {
 		con.Log.Error().Err(err).Send()
@@ -140,7 +192,6 @@ func CreateWsHandleFunc(ctx context.Context, subsystem WsSubsystem) func(conn *w
 		con.Log.Debug().Msg("websocket close")
 
 	}
-
 }
 
 func COPYCHAN[T any](done <-chan struct{}, src chan T) (

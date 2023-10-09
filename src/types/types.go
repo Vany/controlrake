@@ -2,20 +2,13 @@ package types
 
 import (
 	"context"
-	"encoding/json"
 	"github.com/andreykaipov/goobs"
 	"io"
+	"net/http"
 )
 
-type Connector interface {
-	Handle(method string, arg interface{})
-	Init() Connector
-}
-
-type WebMessage struct {
-	Module string          `json:"module"`
-	Method string          `json:"method"`
-	Arg    json.RawMessage `json:"arg"`
+type Component interface {
+	Ready() bool
 }
 
 type WidgetRegistry interface {
@@ -37,4 +30,14 @@ type ObsBrowser interface {
 type ObsSendObject interface {
 	Done() chan struct{}  // will be closed when action was finished
 	Receive() chan string // return action progress messages channel
+}
+
+type Youtube interface {
+	Component
+	GetCodeChan() chan string // get channel to return code from oauth
+}
+
+type HTTPServer interface {
+	GetBaseUrl(host string) string // get base url for serving on host
+	RegisterHandler(path string, handler http.Handler)
 }

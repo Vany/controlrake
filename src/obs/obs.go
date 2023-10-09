@@ -58,8 +58,12 @@ func (o *Obs) Init(ctx context.Context) {
 		}
 
 		<-cfctx.Done()
-		err := o.Client.Disconnect()
-		app.FromContext(ctx).Log.Debug().Err(err).Msg("obs shut down")
+		if o.Client == nil {
+			app.FromContext(ctx).Log.Debug().Msg("obs is nil")
+		} else {
+			err := o.Client.Disconnect()
+			app.FromContext(ctx).Log.Debug().Err(err).Msg("obs shut down")
+		}
 	}()
 }
 

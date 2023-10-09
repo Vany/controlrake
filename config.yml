@@ -1,4 +1,4 @@
-BindAddress:  ":8888"
+BindAddress:  ":8888"   # localhost:333 :555 https://127.0.0.1
 StaticRoot: ./static
 SoundRoot: ./sounds
 
@@ -127,7 +127,7 @@ Widget:
         Type: Container
         Style: 'align: right'
         Args:
-          - Name: ChatWidget
-            Type: Label
-            Style: 'display: block'
-            Caption: Right&nbsp;Label
+          - Name: Youtube
+            Type: Youtube
+            Args:
+              HighlightRegex: "@vany"

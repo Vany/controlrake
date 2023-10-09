@@ -1,7 +1,7 @@
 package tests
 
 import (
-	ty "go/types"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
@@ -16,24 +16,12 @@ type B struct {
 	B int
 }
 
-func (A) UnmarshalJSON(b []byte) error {
-	return nil
-}
-
-func (B) UnmarshalJSON(b []byte) error {
-	return nil
-}
-
-type Object interface {
-	UnmarshalJSON(b []byte) error
-}
-
-func (o Object) UnmarshalJSON(b []byte) error {
-	*o = B{}
-	ty.Checker{}
-	return nil
-}
-
 func Test_X(t *testing.T) {
-
+	var c chan string
+	assert.Nil(t, c)
+	c = make(chan string)
+	assert.NotNil(t, c)
+	close(c)
+	c <- "lalal"
+	assert.Nil(t, c)
 }

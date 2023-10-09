@@ -28,3 +28,7 @@ func ReadConfig(ctx context.Context) (*Config, error) {
 
 	return cfg, nil
 }
+
+func (c *Config) InitStage1(ctx context.Context) error {
+	return nil
+}

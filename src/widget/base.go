@@ -44,9 +44,27 @@ func New(ctx context.Context, cfga any) Widget {
 		w.Base().Config = cfg
 		w.Base().Widget = w
 		w.Base().Chan = sendchan
-		MUST(w.Init(ctx))
 		return w
 	}
+}
+
+func (w *BaseWidget) InitStage1(ctx context.Context) error {
+	println("widget init1")
+	w.Widget.Init(ctx)
+	InitChildren(ctx, w.Widget)
+	return nil
+}
+
+// TODO may be VisitChildren()
+func InitChildren(ctx context.Context, w Widget) error {
+	for n, nw := range w.Children() {
+		if err := nw.Init(ctx); err != nil {
+			return err
+		} else if err := InitChildren(ctx, nw); err != nil {
+			return fmt.Errorf("%s : %w", n, err)
+		}
+	}
+	return nil
 }
 
 type Widget interface {
@@ -56,7 +74,7 @@ type Widget interface {
 	SendChan() chan string                            // get channel where out messages is
 	Send(event string) error                          // Send something to all my visual representations
 	Base() *BaseWidget                                // access to common data
-	Actual() Widget                                   // pointer to actual widget
+	Children() map[string]Widget                      // get all children
 }
 
 type Config struct {
@@ -83,7 +101,7 @@ func (w *BaseWidget) RenderTo(ctx context.Context, wr io.Writer) error {
 		_, err := wr.Write([]byte(w.Name + " => " + w.Type))
 		return err
 	} else {
-		return tmpl.Execute(wr, w.Actual())
+		return tmpl.Execute(wr, w.Widget)
 	}
 }
 
@@ -93,10 +111,6 @@ func (w *BaseWidget) Init(ctx context.Context) error {
 
 func (w *BaseWidget) Base() *BaseWidget {
 	return w
-}
-
-func (w *BaseWidget) Actual() Widget {
-	return w.Widget
 }
 
 func (w *BaseWidget) SendChan() chan string { return w.Chan }
@@ -113,4 +127,8 @@ func (w *BaseWidget) Errorf(f string, args ...any) error {
 func MustSurvive(err error) struct{} {
 	MUST(err)
 	return struct{}{}
+}
+
+func (w *BaseWidget) Children() map[string]Widget {
+	return nil
 }

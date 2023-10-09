@@ -30,6 +30,7 @@ func (w *Container) Init(ctx context.Context) error {
 	return nil
 }
 
+// TODO make it template based
 func (w *Container) RenderTo(ctx context.Context, wr io.Writer) error {
 	app := app.FromContext(ctx)
 	// TODO make this rendering template based
@@ -62,4 +63,8 @@ func (w *Container) Dispatch(ctx context.Context, b []byte) error {
 		return win.Base().Errorf("can't dispatch '%s': %w", parts[1], err)
 	}
 	return nil
+}
+
+func (w *Container) Children() map[string]Widget {
+	return w.Map
 }

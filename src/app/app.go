@@ -2,8 +2,10 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"github.com/vany/controlrake/src/config"
 	"github.com/vany/controlrake/src/types"
+	"reflect"
 )
 
 var Key = struct{}{}
@@ -15,6 +17,8 @@ type App struct {
 	Widget     types.WidgetRegistry
 	Obs        types.Obs
 	ObsBrowser types.ObsBrowser
+	HTTP       types.HTTPServer
+	Youtube    types.Youtube
 }
 
 func PutToApp(ctx context.Context, obj any) context.Context {
@@ -34,10 +38,31 @@ func PutToApp(ctx context.Context, obj any) context.Context {
 		c.Obs = to
 	case types.ObsBrowser:
 		c.ObsBrowser = to
+	case types.HTTPServer:
+		c.HTTP = to
+	case types.Youtube:
+		c.Youtube = to
 	default:
 		panic("unknown type in context container")
 	}
 	return ctx
+}
+
+// only on interface fields
+func (a *App) ExecuteInitStage(ctx context.Context, stage int) error {
+	v := reflect.ValueOf(a).Elem()
+	for i := 0; i < v.NumField(); i++ {
+		f := v.Field(i).Elem()
+		m := f.MethodByName(fmt.Sprintf("InitStage%d", stage))
+		if !m.IsValid() {
+			continue
+		}
+		ret := m.Call([]reflect.Value{reflect.ValueOf(ctx)})[0]
+		if !ret.IsNil() {
+			return ret.Interface().(error)
+		}
+	}
+	return nil
 }
 
 func FromContext(ctx context.Context) *App {
