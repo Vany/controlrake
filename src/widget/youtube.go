@@ -13,8 +13,9 @@ import (
 
 type Youtube struct {
 	BaseWidget
-	PerPage int `default:"10"`
-	Period  int `default:"2"`
+	StartChan chan struct{}
+	PerPage   int `default:"10"`
+	Period    int `default:"2"`
 }
 
 var _ = MustSurvive(RegisterWidgetType(&Youtube{}, `
@@ -42,8 +43,10 @@ var _ = MustSurvive(RegisterWidgetType(&Youtube{}, `
 func (w *Youtube) Init(ctx context.Context) error {
 	defaults.MustSet(w)
 	mapstructure.Decode(w.BaseWidget.Config.Args, w)
+	w.StartChan = make(chan struct{})
 
 	go func() {
+		<-w.StartChan
 		app := app.FromContext(ctx)
 		for !app.Youtube.Ready() {
 			<-time.After(time.Second)
@@ -58,6 +61,16 @@ func (w *Youtube) Init(ctx context.Context) error {
 			}
 		}
 	}()
+
+	return nil
+}
+
+func (w *Youtube) Dispatch(ctx context.Context, event []byte) error {
+	app := app.FromContext(ctx)
+	app.Log.Debug().Msg("Youtube loading")
+	if string(event) == "load" {
+		close(w.StartChan)
+	}
 
 	return nil
 }
