@@ -16,10 +16,7 @@ type Scenes struct {
 }
 
 var _ = MustSurvive(RegisterWidgetType(&Scenes{}, `
-<select>
-	<option>lalala</option>
-	<option>lololo</option>
-</select>
+<select></select>
 <script>
 	let self = document.getElementById({{.Name}});
 	Send(self,"load");
@@ -33,9 +30,11 @@ var _ = MustSurvive(RegisterWidgetType(&Scenes{}, `
 			let xxx = '<option ' + selected + '>' + s.sceneName + "</option>";
 			sel.innerHTML += xxx; 		
 		});
+		self.style.backgroundColor  = "white"
 	};
 	
 	self.onchange = function(e) {
+		self.style.backgroundColor  = "red";
 		Send(this,  "set|" +  e.target.value )
 	};
 	
