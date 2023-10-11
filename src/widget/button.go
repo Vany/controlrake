@@ -1,11 +1,14 @@
 package widget
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"github.com/mitchellh/mapstructure"
 	"github.com/vany/controlrake/src/app"
 	. "github.com/vany/pirog"
+	"os/exec"
+	"strings"
 )
 
 type ButtonArgs struct {
@@ -40,13 +43,15 @@ var _ = MustSurvive(RegisterWidgetType(&Button{}, `
 	{{UnEscape .Name}}_Background = self.style.background;
 
 	self.onWSEvent = function (msg) {
-		if (msg == "done") return self.style.background = {{UnEscape .Name}}_Background;
-		// msg float from 0 to 1
-		saturation =  Math.round(0xff * msg)    // 0 -> ff
-		
-		let bgcolor = "#" + saturation.toString(16).padStart(2, "0") + "ff" + saturation.toString(16).padStart(2, "0"); 
-		self.style.background = bgcolor;
-		console.log(msg + " => " + bgcolor);
+		let [event, data] = msg.split("|", 2);
+		if (msg == "done") {
+			self.style.background = {{UnEscape .Name}}_Background;
+		} else if (event == "progress") {
+			let saturation =  Math.round(0xff * data);
+			self.style.background = "#" + saturation.toString(16).padStart(2, "0") + "ff" + saturation.toString(16).padStart(2, "0"); 			 
+		} else if (event == "out") {
+			console.log("CMD: " + data);
+		} 
 	}
 		
 	{{end}}
@@ -80,7 +85,7 @@ func (w *Button) Dispatch(ctx context.Context, event []byte) error {
 				select {
 				case msg := <-sendObj.Receive():
 					w.Log.Debug().Str("msg", msg).Msg("WS Got")
-					w.Send(msg)
+					w.Send("progress|" + msg)
 				case <-sendObj.Done():
 					w.Log.Debug().Msg("WS Closed")
 					w.Send("done")
@@ -99,7 +104,7 @@ func (w *Button) Dispatch(ctx context.Context, event []byte) error {
 				select {
 				case msg := <-sendObj.Receive():
 					w.Log.Debug().Str("msg", msg).Msg("WS Got")
-					w.Send(msg)
+					w.Send("progress|" + msg)
 				case <-sendObj.Done():
 					w.Log.Debug().Msg("WS Closed")
 					w.Send("done")
@@ -108,6 +113,37 @@ func (w *Button) Dispatch(ctx context.Context, event []byte) error {
 					return
 				}
 			}
+		}()
+	}
+
+	if w.Args.Action.CommandLine != "" {
+
+		go func() {
+			args := strings.Split(w.Args.Action.CommandLine, " ")
+			cmd := exec.CommandContext(ctx, args[0], args[1:]...)
+			stdout, err := cmd.StdoutPipe()
+			if err != nil {
+				w.Send("cmderror|" + err.Error())
+				w.Log.Error().Err(err).Send()
+				return
+			}
+
+			if err := cmd.Start(); err != nil {
+				w.Send("cmderror|" + err.Error())
+				w.Log.Error().Err(err).Send()
+				return
+			}
+
+			scanner := bufio.NewScanner(stdout)
+			for scanner.Scan() {
+				w.Send("out|" + scanner.Text())
+			}
+
+			if err := cmd.Wait(); err != nil {
+				w.Send("cmderror|" + err.Error())
+				w.Log.Error().Err(err).Send()
+			}
+			w.Send("done")
 		}()
 	}
 

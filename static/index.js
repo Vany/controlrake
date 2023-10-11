@@ -1,6 +1,6 @@
 // ad astra per 𖫪
 
-var WS = {};
+var WS = new WebSocket(null);
 
 
 function ConnectWebsocket(handler) {

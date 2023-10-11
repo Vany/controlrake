@@ -16,8 +16,11 @@
     ConnectWebsocket("ws");
     FetchWidgets();
 
+
     function onWSMessage(ev) {
-        const [name, data] = ev.data.split("|", 2);
+        const pipe = ev.data.indexOf("|");
+        const name = ev.data.substring(0, pipe);
+        const data = ev.data.substring(pipe+1);
         let w = document.getElementById(name);
         let f = w.onWSEvent;
         if (f != null) f(data);

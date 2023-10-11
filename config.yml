@@ -123,6 +123,13 @@ Widget:
             Action:
               Html: <font size="8196">🥶</font> <span style="display:none" id="timerspan">15</span>
 
+        - Name: ls
+          Type: Button
+          Caption: 🧟
+          Args:
+            Action:
+              CommandLine: bash -c ls
+
       - Name: ChatContainer
         Type: Container
         Style: 'align: right'
