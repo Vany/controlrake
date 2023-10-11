@@ -67,7 +67,7 @@ func (w *Button) Init(context.Context) error {
 // TODO 🔴REFACTOR!!!!🔴  yes, we can!!!🟢
 func (w *Button) Dispatch(ctx context.Context, event []byte) error {
 	app := app.FromContext(ctx)
-	app.Log.Log().Bytes("event", event).Msg("Pressed")
+	w.Log.Log().Bytes("event", event).Msg("Pressed")
 
 	if w.Args.Action == nil {
 		return w.Errorf(".Action is nil")
@@ -79,10 +79,10 @@ func (w *Button) Dispatch(ctx context.Context, event []byte) error {
 			for {
 				select {
 				case msg := <-sendObj.Receive():
-					app.Log.Debug().Str("msg", msg).Msg("WS Got")
+					w.Log.Debug().Str("msg", msg).Msg("WS Got")
 					w.Send(msg)
 				case <-sendObj.Done():
-					app.Log.Debug().Msg("WS Closed")
+					w.Log.Debug().Msg("WS Closed")
 					w.Send("done")
 					return
 				case <-ctx.Done():
@@ -98,10 +98,10 @@ func (w *Button) Dispatch(ctx context.Context, event []byte) error {
 			for {
 				select {
 				case msg := <-sendObj.Receive():
-					app.Log.Debug().Str("msg", msg).Msg("WS Got")
+					w.Log.Debug().Str("msg", msg).Msg("WS Got")
 					w.Send(msg)
 				case <-sendObj.Done():
-					app.Log.Debug().Msg("WS Closed")
+					w.Log.Debug().Msg("WS Closed")
 					w.Send("done")
 					return
 				case <-ctx.Done():

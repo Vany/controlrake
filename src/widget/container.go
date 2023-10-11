@@ -3,7 +3,6 @@ package widget
 import (
 	"bytes"
 	"context"
-	"github.com/vany/controlrake/src/app"
 	"github.com/vany/pirog"
 	"io"
 )
@@ -32,7 +31,6 @@ func (w *Container) Init(ctx context.Context) error {
 
 // TODO make it template based
 func (w *Container) RenderTo(ctx context.Context, wr io.Writer) error {
-	app := app.FromContext(ctx)
 	// TODO make this rendering template based
 	if _, err := wr.Write([]byte(`<div class="widget container" id="` + w.Name + `"` +
 		pirog.TERNARY(w.Style != "", ` style="`+w.Style+`"`, "") +
@@ -40,10 +38,10 @@ func (w *Container) RenderTo(ctx context.Context, wr io.Writer) error {
 		return err
 	}
 	for _, n := range w.Order {
-		w := w.Map[n]
-		if err := w.RenderTo(ctx, wr); err != nil {
-			app.Log.Error().Err(err).Msgf("%s render failed", n)
-			return w.Base().Errorf("%s render failed", n)
+		wn := w.Map[n]
+		if err := wn.RenderTo(ctx, wr); err != nil {
+			w.Log.Error().Err(err).Msgf("%s render failed", n)
+			return wn.Base().Errorf("%s render failed", n)
 		}
 	}
 	if _, err := wr.Write([]byte(`</div>`)); err != nil {

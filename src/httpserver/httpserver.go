@@ -19,10 +19,10 @@ type HTTPServer struct {
 
 func New(ctx context.Context) (*HTTPServer, error) {
 	s := new(HTTPServer)
-	con := app.FromContext(ctx)
+	app := app.FromContext(ctx)
 	s.HandlersToRegister = make(map[string]http.Handler)
 	s.Server = &http.Server{
-		Addr:        con.Cfg.BindAddress,
+		Addr:        app.Cfg.BindAddress,
 		ConnState:   nil,
 		BaseContext: func(net.Listener) context.Context { return ctx },
 	}
@@ -43,9 +43,10 @@ func (s *HTTPServer) RegisterHandler(path string, handler http.Handler) {
 
 func (s *HTTPServer) InitStage1(ctx context.Context) error {
 	s.Server.Handler = s.Mux(ctx)
+	log := app.FromContext(ctx).Logger()
 	go func() {
 		if err := s.Server.ListenAndServe(); err == http.ErrServerClosed {
-			app.FromContext(ctx).Log.Info().Msg("http server shut down gracefully")
+			log.Info().Msg("http server shut down gracefully")
 		} else {
 			panic("can't http server: " + err.Error())
 		}
@@ -101,11 +102,12 @@ func (s *HTTPServer) Mux(ctx context.Context) http.Handler {
 func GoogleOAUTH2(ctx context.Context) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		app := app.FromContext(ctx)
+		log := app.Logger()
 		code := r.FormValue("code")
 		w.Header().Set("Content-Type", "text/plain")
 		fmt.Fprintf(w, "Received code: %v\r\nYou can now safely close this browser window.", code)
 		if cch := app.Youtube.GetCodeChan(); cch == nil {
-			app.Log.Error().Msg("Codechan is nil")
+			log.Error().Msg("Codechan is nil")
 		} else {
 			cch <- code
 		}
@@ -113,18 +115,20 @@ func GoogleOAUTH2(ctx context.Context) func(http.ResponseWriter, *http.Request) 
 }
 
 func RenderWidgets(w http.ResponseWriter, r *http.Request) {
-	con := app.FromContext(r.Context())
-	if err := con.Widget.RenderTo(r.Context(), w); err != nil {
-		con.Log.Error().Err(err).Send()
+	app := app.FromContext(r.Context())
+	log := app.Logger()
+	if err := app.Widget.RenderTo(r.Context(), w); err != nil {
+		log.Error().Err(err).Send()
 	}
 }
 
 type LoggingHandler struct{ http.Handler }
 
 func (h *LoggingHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	con := app.FromContext(r.Context())
+	app := app.FromContext(r.Context())
+	log := app.Logger()
 	h.Handler.ServeHTTP(w, r)
-	con.Log.Info().Str("url", r.URL.String()).Send()
+	log.Info().Str("url", r.URL.String()).Send()
 }
 
 // WsSubsystem - subsystem with chan for websocket
@@ -138,9 +142,9 @@ func CreateWsHandleFunc(ctx context.Context, subsystem WsSubsystem) func(conn *w
 	return func(ws *websocket.Conn) {
 		defer ws.Close()
 		ctx := ws.Request().Context()
-		con := app.FromContext(ctx)
-		con.Log.Debug().Str("url", ws.Request().URL.String()).Msg("I'm in ws handler")
-
+		app := app.FromContext(ctx)
+		log := app.Logger()
+		log.Debug().Str("url", ws.Request().URL.String()).Msg("I'm in ws handler")
 		wsctx, cf := context.WithCancel(ctx)
 		defer cf()
 
@@ -152,7 +156,7 @@ func CreateWsHandleFunc(ctx context.Context, subsystem WsSubsystem) func(conn *w
 				select {
 				case msg := <-send: // widgets.SendChan
 					if fw, err := ws.NewFrameWriter(websocket.TextFrame); err != nil {
-						con.Log.Error().Err(err).Msg("Can't create new websocket frame")
+						log.Error().Err(err).Msg("Can't create new websocket frame")
 					} else {
 						fw.Write([]byte(msg))
 					}
@@ -165,31 +169,31 @@ func CreateWsHandleFunc(ctx context.Context, subsystem WsSubsystem) func(conn *w
 		for {
 			f, err := ws.NewFrameReader()
 			if err != nil {
-				con.Log.Error().Err(err).Msg("websocket failed")
+				log.Error().Err(err).Msg("websocket failed")
 				break
 			}
 
 			if f.PayloadType() == websocket.CloseFrame {
-				con.Log.Debug().Msg("Client wants to quit")
+				log.Debug().Msg("Client wants to quit")
 				break
 			}
 
-			con.Log.Debug().Interface("payload", f.PayloadType()).Msg("New WS frame")
+			log.Debug().Interface("payload", f.PayloadType()).Msg("New WS frame")
 
 			b, err := io.ReadAll(f)
 
 			if err != nil {
-				con.Log.Error().Err(err).Msg("websocket frame failed")
+				log.Error().Err(err).Msg("websocket frame failed")
 			} else {
 
 				if err := subsystem.Dispatch(ctx, b); err != nil {
-					con.Log.Error().Err(err).Msg("Receiver failed")
+					log.Error().Err(err).Msg("Receiver failed")
 				} else {
-					con.Log.Info().Bytes("payload", b).Msg("websocket frame arrived")
+					log.Info().Bytes("payload", b).Msg("websocket frame arrived")
 				}
 			}
 		}
-		con.Log.Debug().Msg("websocket close")
+		log.Debug().Msg("websocket close")
 
 	}
 }

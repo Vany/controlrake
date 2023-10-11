@@ -31,13 +31,11 @@ func New(ctx context.Context) types.Obs {
 	mapstructure.Decode(con.Cfg.Obs, &obs.Config)
 
 	obs.Init(ctx)
-	//logger := con.Log.With().Str("component", "OBS").Logger()
-	//obs.Client.Log = &logger
-
 	return obs
 }
 
 func (o *Obs) Init(ctx context.Context) {
+	log := app.FromContext(ctx).Logger()
 	cfctx, cf := context.WithCancel(ctx)
 	o.Cancel = cf
 	o.Client = nil
@@ -59,10 +57,10 @@ func (o *Obs) Init(ctx context.Context) {
 
 		<-cfctx.Done()
 		if o.Client == nil {
-			app.FromContext(ctx).Log.Debug().Msg("obs is nil")
+			log.Debug().Msg("obs is nil")
 		} else {
 			err := o.Client.Disconnect()
-			app.FromContext(ctx).Log.Debug().Err(err).Msg("obs shut down")
+			log.Debug().Err(err).Msg("obs shut down")
 		}
 	}()
 }

@@ -2,7 +2,7 @@ package widget
 
 import (
 	"context"
-	app2 "github.com/vany/controlrake/src/app"
+	"github.com/vany/controlrake/src/app"
 )
 
 var _ = MustSurvive(RegisterWidgetType(&Eval{}, `
@@ -27,14 +27,14 @@ type Eval struct {
 }
 
 func (w *Eval) Dispatch(ctx context.Context, event []byte) error {
-	app := app2.FromContext(ctx)
+	app := app.FromContext(ctx)
 	go func() {
 		so := app.ObsBrowser.Send(ctx, "Eval|"+string(event))
 		ret := <-so.Receive()
-		app.Log.Info().Str("ret", ret).Msg("Eval received")
+		w.Log.Info().Str("ret", ret).Msg("Eval received")
 		w.Send(ret)
 		<-so.Done()
-		app.Log.Info().Msg("Eval done")
+		w.Log.Info().Msg("Eval done")
 
 	}()
 	return nil

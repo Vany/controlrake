@@ -184,6 +184,7 @@ func (y *Youtube) GetChatConnection(ctx context.Context, perpage int) *ChatConne
 // TODO do not retrieve penultimate page if we have messages from it
 func (cc *ChatConnection) Spin(ctx context.Context) []string {
 	app := app2.FromContext(ctx)
+
 	if info, err := cc.Yt.GetStreamInfo(ctx); err != nil {
 		app.Log.Error().Err(err).Msg("y.GetStreamInfo(ctx)")
 	} else {
@@ -194,6 +195,7 @@ func (cc *ChatConnection) Spin(ctx context.Context) []string {
 	pt := cc.PenultimatePageToken
 
 	for {
+		app.Logger()
 		app.Log.Error().Msg("Requesting")
 		<-time.After(50 * time.Millisecond)
 		req := cc.Yt.Service.LiveChatMessages.

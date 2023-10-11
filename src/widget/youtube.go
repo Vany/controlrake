@@ -51,7 +51,7 @@ func (w *Youtube) Init(ctx context.Context) error {
 		for !app.Youtube.Ready() {
 			<-time.After(time.Second)
 		}
-		app.Log.Info().Msg("Youtube component found")
+		w.Log.Info().Msg("Youtube component found")
 		cc := app.Youtube.(*youtube.Youtube).GetChatConnection(ctx, w.PerPage)
 		for {
 			w.Send(ToJson([]any{cc.Info, MAP(cc.Spin(ctx), template.HTMLEscapeString)}))
@@ -66,8 +66,7 @@ func (w *Youtube) Init(ctx context.Context) error {
 }
 
 func (w *Youtube) Dispatch(ctx context.Context, event []byte) error {
-	app := app.FromContext(ctx)
-	app.Log.Debug().Msg("Youtube loading")
+	w.Log.Debug().Msg("Youtube loading")
 	if string(event) == "load" && w.StartChan != nil {
 		close(w.StartChan)
 		w.StartChan = nil

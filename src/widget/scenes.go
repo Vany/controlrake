@@ -50,7 +50,7 @@ func (w *Scenes) Init(ctx context.Context) error {
 
 func (w *Scenes) Dispatch(ctx context.Context, event []byte) error {
 	app := app.FromContext(ctx)
-	app.Log.Log().Bytes("event", event).Msg("Pressed")
+	w.Log.Log().Bytes("event", event).Msg("Pressed")
 	o := app.Obs.(*obs.Obs)
 
 	e := string(event)
@@ -58,17 +58,17 @@ func (w *Scenes) Dispatch(ctx context.Context, event []byte) error {
 		if _, err := obs.Wrapper(ctx, o, func() (*scenes.SetCurrentProgramSceneResponse, error) {
 			return o.Client.Scenes.SetCurrentProgramScene(&scenes.SetCurrentProgramSceneParams{SceneName: sc})
 		}); err != nil {
-			app.Log.Error().Str("event", e).Err(err).Msg("SetCurrentProgramScene()")
+			w.Log.Error().Str("event", e).Err(err).Msg("SetCurrentProgramScene()")
 		}
 		if err := w.SendScene(ctx, o); err != nil {
-			app.Log.Error().Str("event", e).Err(err).Msg("w.SendScene()")
+			w.Log.Error().Str("event", e).Err(err).Msg("w.SendScene()")
 		}
 
 	} else if e == "load" {
 		w.SendScene(ctx, o)
 
 	} else {
-		app.Log.Error().Str("event", e).Msg("wtf")
+		w.Log.Error().Str("event", e).Msg("wtf")
 	}
 
 	return nil

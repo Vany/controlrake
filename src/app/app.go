@@ -3,9 +3,12 @@ package app
 import (
 	"context"
 	"fmt"
+	"github.com/rs/zerolog"
 	"github.com/vany/controlrake/src/config"
 	"github.com/vany/controlrake/src/types"
 	"reflect"
+	"runtime"
+	"strings"
 )
 
 var Key = struct{}{}
@@ -66,4 +69,14 @@ func FromContext(ctx context.Context) *App {
 	} else {
 		return c.(*App)
 	}
+}
+
+// Logger for subsystem and function
+func (a *App) Logger() zerolog.Logger {
+	pc, _, _, _ := runtime.Caller(1)
+	fs := runtime.CallersFrames([]uintptr{pc})
+	fr, _ := fs.Next()
+	i := strings.LastIndexByte(fr.Function, '/')
+	l := a.Log.With().Str("Func", fr.Function[i+1:]).Logger()
+	return l
 }

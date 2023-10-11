@@ -41,18 +41,18 @@ type ObsRecordInfo struct {
 
 func (w *ObsRecord) Init(ctx context.Context) error {
 	done := ctx.Done()
-	con := app.FromContext(ctx)
+	app := app.FromContext(ctx)
 	go func() {
 	STOP:
 		for {
 			select {
 			case <-time.Tick(time.Second):
-				o := con.Obs.(*obs.Obs)
+				o := app.Obs.(*obs.Obs)
 				inf, err := obs.Wrapper(ctx, o, func() (*record.GetRecordStatusResponse, error) {
 					return o.Client.Record.GetRecordStatus()
 				})
 				if err != nil {
-					con.Log.Error().Err(err).Msg("obs failed to GetRecordStatus()")
+					w.Log.Error().Err(err).Msg("obs failed to GetRecordStatus()")
 					continue
 				}
 				tarr := strings.SplitN(inf.OutputTimecode, ":", 3)
@@ -70,7 +70,7 @@ func (w *ObsRecord) Init(ctx context.Context) error {
 					Length: length,
 				}))
 			case <-done:
-				con.Log.Info().Msg("Clock shut down")
+				app.Log.Info().Msg("Clock shut down")
 				break STOP
 			}
 		}
@@ -80,9 +80,9 @@ func (w *ObsRecord) Init(ctx context.Context) error {
 }
 
 func (w *ObsRecord) Dispatch(ctx context.Context, event []byte) error {
-	con := app.FromContext(ctx)
-	o := con.Obs.(*obs.Obs)
-	con.Log.Log().Bytes("event", event).Msg("Pressed")
+	app := app.FromContext(ctx)
+	o := app.Obs.(*obs.Obs)
+	w.Log.Log().Bytes("event", event).Msg("Pressed")
 	var err error
 
 	switch string(event) {

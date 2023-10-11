@@ -50,6 +50,7 @@ func (o *Browser) SendChan() chan string { return o.Chan }
 
 // TODO  optimize cleaner with priority queue
 func (o *Browser) Send(ctx context.Context, msg string) types.ObsSendObject {
+	log := app.FromContext(ctx).Logger()
 	uuid := uuid.New()
 	o.Chan <- uuid.String() + "|" + msg
 	ret := &SendObject{
@@ -61,7 +62,7 @@ func (o *Browser) Send(ctx context.Context, msg string) types.ObsSendObject {
 	o.Receivers[uuid] = ret
 	o.LastAccessed[uuid] = time.Now()
 
-	app.FromContext(ctx).Log.Debug().Str("msg", msg).Msg("Sent")
+	log.Debug().Str("msg", msg).Msg("Sent")
 	return ret
 }
 

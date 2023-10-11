@@ -5,6 +5,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/mitchellh/mapstructure"
+	"github.com/rs/zerolog"
+	app2 "github.com/vany/controlrake/src/app"
 	"html/template"
 	"io"
 	"reflect"
@@ -33,6 +35,7 @@ func RegisterWidgetType(w Widget, tmplstring string) error {
 
 func New(ctx context.Context, cfga any) Widget {
 	cfg := Config{}
+	app := app2.FromContext(ctx)
 	mapstructure.Decode(cfga, &cfg)
 	if t, ok := TypeRegistry[cfg.Type]; !ok {
 		panic("unknown widget type: " + cfg.Type)
@@ -40,6 +43,7 @@ func New(ctx context.Context, cfga any) Widget {
 		w := reflect.New(t).Interface().(Widget)
 		w.Base().Config = cfg
 		w.Base().Widget = w
+		w.Base().Log = app.Log.With().Str("widget", cfg.Name).Logger()
 		return w
 	}
 }
@@ -68,8 +72,8 @@ func InitChildren(ctx context.Context, w Widget) error {
 
 type Widget interface {
 	Init(ctx context.Context) error                   // init widget with config in it's base
-	RenderTo(ctx context.Context, wr io.Writer) error // render visual representation
 	Dispatch(ctx context.Context, event []byte) error // consume one event from Websocket
+	RenderTo(ctx context.Context, wr io.Writer) error // render visual representation
 	SendChan() chan string                            // get channel where out messages is
 	Send(event string) error                          // Send something to all my visual representations
 	Base() *BaseWidget                                // access to common data
@@ -86,8 +90,9 @@ type Config struct {
 
 type BaseWidget struct {
 	Config
-	Widget Widget      // link to actual widget object
-	Chan   chan string // channel to interact with visual representation
+	Widget Widget         // link to actual widget object
+	Chan   chan string    // channel to interact with visual representation
+	Log    zerolog.Logger // logger for specified widget
 }
 
 // Consume websocket message in separate goroutine

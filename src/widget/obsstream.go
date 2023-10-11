@@ -45,19 +45,19 @@ type ObsStreamInfo struct {
 
 func (w *ObsStream) Init(ctx context.Context) error {
 	done := ctx.Done()
-	con := app.FromContext(ctx)
+	app := app.FromContext(ctx)
 	go func() {
 	STOP:
 		for {
 			select {
 			case <-time.Tick(time.Second):
-				o := con.Obs.(*obs.Obs)
+				o := app.Obs.(*obs.Obs)
 				inf, err := obs.Wrapper(ctx, o, func() (*stream.GetStreamStatusResponse, error) {
 					return o.Client.Stream.GetStreamStatus()
 				})
 
 				if err != nil {
-					con.Log.Error().Err(err).Msg("Stream.GetStreamStatus() failed")
+					w.Log.Error().Err(err).Msg("GetStreamStatus() failed")
 				} else {
 					tarr := strings.SplitN(inf.OutputTimecode, ":", 3)
 					w.Send(ToJson(ObsStreamInfo{
@@ -68,7 +68,7 @@ func (w *ObsStream) Init(ctx context.Context) error {
 					}))
 				}
 			case <-done:
-				con.Log.Info().Msg("Clock shut down")
+				w.Log.Info().Msg("shut down")
 				break STOP
 			}
 		}
