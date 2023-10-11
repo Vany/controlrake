@@ -27,23 +27,17 @@ func PutToApp(ctx context.Context, obj any) context.Context {
 		c = &App{}
 		ctx = context.WithValue(ctx, Key, c)
 	}
-	switch to := obj.(type) {
-	case *config.Config:
-		c.Cfg = to
-	case *types.Logger:
-		c.Log = to
-	case types.WidgetRegistry:
-		c.Widget = to
-	case types.Obs:
-		c.Obs = to
-	case types.ObsBrowser:
-		c.ObsBrowser = to
-	case types.HTTPServer:
-		c.HTTP = to
-	case types.Youtube:
-		c.Youtube = to
-	default:
-		panic("unknown type in context container")
+
+	ft := reflect.TypeOf(c).Elem()
+	ot := reflect.TypeOf(obj)
+	for i := 0; i < ft.NumField(); i++ {
+		ftc := ft.Field(i).Type
+		if ftc.Kind() == reflect.Pointer {
+			ftc = ftc.Elem()
+		}
+		if ot.Elem().AssignableTo(ftc) || (ftc.Kind() == reflect.Interface && ot.Implements(ftc)) {
+			reflect.ValueOf(c).Elem().Field(i).Set(reflect.ValueOf(obj))
+		}
 	}
 	return ctx
 }

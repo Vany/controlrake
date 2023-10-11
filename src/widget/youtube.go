@@ -68,10 +68,10 @@ func (w *Youtube) Init(ctx context.Context) error {
 func (w *Youtube) Dispatch(ctx context.Context, event []byte) error {
 	app := app.FromContext(ctx)
 	app.Log.Debug().Msg("Youtube loading")
-	if string(event) == "load" {
+	if string(event) == "load" && w.StartChan != nil {
 		close(w.StartChan)
+		w.StartChan = nil
 	}
-
 	return nil
 }
 
