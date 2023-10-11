@@ -2,26 +2,23 @@
 
 var WS = new WebSocket(null);
 
+
 function ConnectWebsocket(handler) {
-    let addr = "ws://" + location.host + "/" + handler
-    let sb =  WS ? WS.SendBuffer : [];
+    let addr = "ws://" + location.host + "/" + handler;
     WS = new WebSocket(addr);
+    console.log("Connecting: " + handler)
     WS.onmessage = onWSMessage;
-    WS.SendBuffer = sb;
 
     WS.onopen = () => {
-        console.log("ws connected to " + handler)
-        for (let msg in WS.SendBuffer) {
-            WS.send(msg)
-        }
+        console.log("Connected to " + handler)
         WS.onclose = () => {
-            if (WS.readyState != WebSocket.CONNECTING) setTimeout(() => ConnectWebsocket(handler), 1000);
+            setTimeout(() => ConnectWebsocket(handler), 1000);
         };
+        WS.onerror = null;
     };
 
-    WS.onerror = () => {
-        console.error(err);
-        if (WS.readyState != WebSocket.CONNECTING) setTimeout(() => ConnectWebsocket(handler), 1000);
+    WS.onerror = (ev) => {
+        setTimeout(() => ConnectWebsocket(handler), 1000);
     };
 }
 
@@ -32,8 +29,7 @@ function Send(obj, msg) {
     } else if (WS.readyState == WebSocket.OPEN) {
         WS.send(msg)
     } else {
-        console.log("buffered: " + msg);
-        WS.SendBuffer.push(msg)
+        console.log("lost: " + msg);
     }
 }
 
