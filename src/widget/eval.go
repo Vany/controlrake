@@ -10,7 +10,7 @@ var _ = MustSurvive(RegisterWidgetType(&Eval{}, `
 <span></span>
 
 <script>
-		let self = document.getElementById({{.Name}});
+		let self = document.getElementById("{{.Name}}");
 		self.getElementsByTagName("input")[0].onkeyup = function (ev) {
 			if (ev.key == "Enter") Send(self, this.value);		
 		};
@@ -26,7 +26,7 @@ type Eval struct {
 	BaseWidget
 }
 
-func (w *Eval) Dispatch(ctx context.Context, event []byte) error {
+func (w *Eval) Dispatch(ctx context.Context, event string) error {
 	app := app.FromContext(ctx)
 	go func() {
 		so := app.ObsBrowser.Send(ctx, "Eval|"+string(event))

@@ -1,7 +1,6 @@
 package tests
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
@@ -17,11 +16,13 @@ type B struct {
 }
 
 func Test_X(t *testing.T) {
-	var c chan string
-	assert.Nil(t, c)
-	c = make(chan string)
-	assert.NotNil(t, c)
-	close(c)
-	c <- "lalal"
-	assert.Nil(t, c)
+	m := map[string]int{"a": 10}
+	i := 20
+	ok := false
+	if i, ok = m["ab"]; !ok {
+		println(i)
+	} else {
+		println(i)
+	}
+
 }

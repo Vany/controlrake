@@ -1,10 +1,8 @@
 package widget
 
 import (
-	"bytes"
 	"context"
-	"github.com/vany/pirog"
-	"io"
+	"strings"
 )
 
 type Container struct {
@@ -13,11 +11,33 @@ type Container struct {
 	// registry part
 	Map   map[string]Widget // contained widgets
 	Order []string          // order which widgets was in config
+	Len   int               // count of widgets
 }
 
-var _ = MustSurvive(RegisterWidgetType(&Container{}, ``))
+var _ = MustSurvive(RegisterWidgetType(&Container{}, `
+<div class="container" id="{{.Name}}" {{if .Style}}style="{{.Style}}{{end}}">
+{{ $M := .Map }}
+{{range .Order}}
+{{ $v := index $M .}}
+{{$buff := WriteBuffer -}} {{- $err := $v.RenderTo nil $buff -}} {{$buff.String}}
+{{end}}
+</div>
+
+<script>
+	let self = document.getElementById("{{.Name}}")
+
+	self.oncontextmenu = function (ev) {
+		ev.stopImmediatePropagation();
+		FetchWidgets(EvaluateMyPath(self).replaceAll("|", "/"));
+	}
+</script>
+`))
 
 func (w *Container) Init(ctx context.Context) error {
+	if w.Args == nil {
+		w.Log.Error().Msg("Empty Container")
+		return nil
+	}
 	w.Map = make(map[string]Widget)
 	for _, cfga := range w.Args.([]any) {
 		wnew := New(ctx, cfga)
@@ -26,35 +46,17 @@ func (w *Container) Init(ctx context.Context) error {
 		wnew.Base().Chan = w.Chan
 		w.Order = append(w.Order, name)
 	}
+	w.Len = len(w.Map)
 	return nil
 }
 
-// TODO make it template based
-func (w *Container) RenderTo(ctx context.Context, wr io.Writer) error {
-	// TODO make this rendering template based
-	if _, err := wr.Write([]byte(`<div class="widget container" id="` + w.Name + `"` +
-		pirog.TERNARY(w.Style != "", ` style="`+w.Style+`"`, "") +
-		`>`)); err != nil {
-		return err
-	}
-	for _, n := range w.Order {
-		wn := w.Map[n]
-		if err := wn.RenderTo(ctx, wr); err != nil {
-			w.Log.Error().Err(err).Msgf("%s render failed", n)
-			return wn.Base().Errorf("%s render failed", n)
-		}
-	}
-	if _, err := wr.Write([]byte(`</div>`)); err != nil {
-		return err
+func (w *Container) Dispatch(ctx context.Context, b string) error {
+	parts := strings.SplitN(b, "|", 2)
+	if parts[0] == w.Name {
+		parts = strings.SplitN(parts[1], "|", 2)
 	}
 
-	return nil
-}
-
-func (w *Container) Dispatch(ctx context.Context, b []byte) error {
-	parts := bytes.SplitN(b, []byte{'|'}, 2)
-	name := string(parts[0])
-
+	name := parts[0]
 	if win, ok := w.Map[name]; !ok {
 		return w.Base().Errorf("widget %s not found", name)
 	} else if err := win.Dispatch(ctx, parts[1]); err != nil {
@@ -66,3 +68,9 @@ func (w *Container) Dispatch(ctx context.Context, b []byte) error {
 func (w *Container) Children() map[string]Widget {
 	return w.Map
 }
+
+//<table class="container" id="{{.Name}}" width="100%"><tr>
+//{{range $k, $v := .Map}}
+//<td>{{$buff := WriteBuffer -}} {{- $err := $v.RenderTo nil $buff -}} {{$buff.String}}</td>
+//{{end}}
+//</tr></table>

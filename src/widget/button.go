@@ -29,7 +29,7 @@ var _ = MustSurvive(RegisterWidgetType(&Button{}, `
 <button>{{.Caption}}</button>
 
 <script>
-	let self = document.getElementById({{.Name}})
+	let self = document.getElementById("{{.Name}}")
 	{{if not .Args.Action }} // button have an action
 	self.onclick = function() {
 		Send(this,"click")
@@ -40,12 +40,12 @@ var _ = MustSurvive(RegisterWidgetType(&Button{}, `
 		self.style.background = "#00ff00";
 	};
 
-	{{UnEscape .Name}}_Background = self.style.background;
+	{{.Name}}_Background = self.style.background;
 
 	self.onWSEvent = function (msg) {
 		let [event, data] = msg.split("|", 2);
 		if (msg == "done") {
-			self.style.background = {{UnEscape .Name}}_Background;
+			self.style.background = {{.Name}}_Background;
 		} else if (event == "progress") {
 			let saturation =  Math.round(0xff * data);
 			self.style.background = "#" + saturation.toString(16).padStart(2, "0") + "ff" + saturation.toString(16).padStart(2, "0"); 			 
@@ -56,7 +56,7 @@ var _ = MustSurvive(RegisterWidgetType(&Button{}, `
 		
 	{{end}}
 	
-	function {{UnEscape .Name}}_Click() {
+	function {{.Name}}_Click() {
 			self.bgColor = ""
 			
 	}
@@ -70,9 +70,9 @@ func (w *Button) Init(context.Context) error {
 }
 
 // TODO 🔴REFACTOR!!!!🔴  yes, we can!!!🟢
-func (w *Button) Dispatch(ctx context.Context, event []byte) error {
+func (w *Button) Dispatch(ctx context.Context, event string) error {
 	app := app.FromContext(ctx)
-	w.Log.Log().Bytes("event", event).Msg("Pressed")
+	w.Log.Log().Str("event", event).Msg("Pressed")
 
 	if w.Args.Action == nil {
 		return w.Errorf(".Action is nil")

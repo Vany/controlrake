@@ -16,6 +16,8 @@ type ObsRecord struct {
 }
 
 var _ = MustSurvive(RegisterWidgetType(&ObsRecord{}, `
+<div style="display: inline-flex">
+
 	<button onclick="Send(this, 'rec')">⏺️</button>
 	<span></span>
 	<button onclick="Send(this, 'pause')">⏸️</button>
@@ -31,6 +33,7 @@ var _ = MustSurvive(RegisterWidgetType(&ObsRecord{}, `
 			bpause.innerHTML = inf.Rec && inf.Pause ? "♊️" : "⏸️" ;
 		}
 	</script>
+</div>
 `))
 
 type ObsRecordInfo struct {
@@ -79,10 +82,10 @@ func (w *ObsRecord) Init(ctx context.Context) error {
 	return nil
 }
 
-func (w *ObsRecord) Dispatch(ctx context.Context, event []byte) error {
+func (w *ObsRecord) Dispatch(ctx context.Context, event string) error {
 	app := app.FromContext(ctx)
 	o := app.Obs.(*obs.Obs)
-	w.Log.Log().Bytes("event", event).Msg("Pressed")
+	w.Log.Log().Str("event", event).Msg("Pressed")
 	var err error
 
 	switch string(event) {

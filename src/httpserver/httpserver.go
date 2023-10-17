@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/vany/controlrake/src/app"
+	"github.com/vany/controlrake/src/widget"
 	"golang.org/x/net/websocket"
 	"io"
 	"net"
@@ -114,10 +115,28 @@ func GoogleOAUTH2(ctx context.Context) func(http.ResponseWriter, *http.Request) 
 	}
 }
 
+type BaseWidget interface{ Base() *widget.BaseWidget }
+
 func RenderWidgets(w http.ResponseWriter, r *http.Request) {
 	app := app.FromContext(r.Context())
+	wi := app.Widget
+	path := strings.Split(r.URL.Path, "/")[2:]
+	if root, ok := wi.(BaseWidget); !ok {
+	} else if root.Base().Name != path[0] {
+	} else {
+		for _, p := range path[1:] {
+			if ww, ok := wi.(*widget.Container); !ok {
+				break
+			} else if wi, ok = ww.Map[p]; !ok {
+
+				wi = app.Widget
+				break
+			}
+		}
+	}
+
 	log := app.Logger()
-	if err := app.Widget.RenderTo(r.Context(), w); err != nil {
+	if err := wi.RenderTo(r.Context(), w); err != nil {
 		log.Error().Err(err).Send()
 	}
 }
@@ -133,7 +152,7 @@ func (h *LoggingHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // WsSubsystem - subsystem with chan for websocket
 type WsSubsystem interface {
-	Dispatch(ctx context.Context, b []byte) error // receive event from obs browser html
+	Dispatch(ctx context.Context, b string) error // receive event from obs browser html
 	SendChan() chan string                        // channel from server to page
 }
 
@@ -186,7 +205,7 @@ func CreateWsHandleFunc(ctx context.Context, subsystem WsSubsystem) func(conn *w
 				log.Error().Err(err).Msg("websocket frame failed")
 			} else {
 
-				if err := subsystem.Dispatch(ctx, b); err != nil {
+				if err := subsystem.Dispatch(ctx, string(b)); err != nil {
 					log.Error().Err(err).Msg("Receiver failed")
 				} else {
 					log.Info().Bytes("payload", b).Msg("websocket frame arrived")

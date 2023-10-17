@@ -18,7 +18,7 @@ type Scenes struct {
 var _ = MustSurvive(RegisterWidgetType(&Scenes{}, `
 <select></select>
 <script>
-	let self = document.getElementById({{.Name}});
+	let self = document.getElementById("{{.Name}}");
 	Send(self,"load");
 
 	self.onWSEvent = function (msg) {
@@ -47,27 +47,26 @@ func (w *Scenes) Init(ctx context.Context) error {
 	return pirog.TERNARY(err == nil, nil, w.Errorf("cant read config %#v: %w", w.Config.Args, err))
 }
 
-func (w *Scenes) Dispatch(ctx context.Context, event []byte) error {
+func (w *Scenes) Dispatch(ctx context.Context, event string) error {
 	app := app.FromContext(ctx)
-	w.Log.Log().Bytes("event", event).Msg("Pressed")
+	w.Log.Log().Str("event", event).Msg("Pressed")
 	o := app.Obs.(*obs.Obs)
 
-	e := string(event)
-	if sc, ok := strings.CutPrefix(e, "set|"); ok {
+	if sc, ok := strings.CutPrefix(event, "set|"); ok {
 		if _, err := obs.Wrapper(ctx, o, func() (*scenes.SetCurrentProgramSceneResponse, error) {
 			return o.Client.Scenes.SetCurrentProgramScene(&scenes.SetCurrentProgramSceneParams{SceneName: sc})
 		}); err != nil {
-			w.Log.Error().Str("event", e).Err(err).Msg("SetCurrentProgramScene()")
+			w.Log.Error().Str("event", event).Err(err).Msg("SetCurrentProgramScene()")
 		}
 		if err := w.SendScene(ctx, o); err != nil {
-			w.Log.Error().Str("event", e).Err(err).Msg("w.SendScene()")
+			w.Log.Error().Str("event", event).Err(err).Msg("w.SendScene()")
 		}
 
-	} else if e == "load" {
+	} else if event == "load" {
 		w.SendScene(ctx, o)
 
 	} else {
-		w.Log.Error().Str("event", e).Msg("wtf")
+		w.Log.Error().Str("event", event).Msg("wtf")
 	}
 
 	return nil

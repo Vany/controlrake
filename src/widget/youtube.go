@@ -19,13 +19,30 @@ type Youtube struct {
 }
 
 var _ = MustSurvive(RegisterWidgetType(&Youtube{}, `
+CHATCHATCHATCHATCHATCHATCHATCHATC
+CHATCHATCHATCHATCHATCHATCHATCHATC
+CHATCHATCHATCHATCHATCHATCHATCHATC
+CHATCHATCHATCHATCHATCHATCHATCHATC
+CHATCHATCHATCHATCHATCHATCHATCHATC
+CHATCHATCHATCHATCHATCHATCHATCHATC
+CHATCHATCHATCHATCHATCHATCHATCHATC
+CHATCHATCHATCHATCHATCHATCHATCHATC
+CHATCHATCHATCHATCHATCHATCHATCHATC
+CHATCHATCHATCHATCHATCHATCHATCHATC
+CHATCHATCHATCHATCHATCHATCHATCHATC
+CHATCHATCHATCHATCHATCHATCHATCHATC
+CHATCHATCHATCHATCHATCHATCHATCHATC
+CHATCHATCHATCHATCHATCHATCHATCHATC
+CHATCHATCHATCHATCHATCHATCHATCHATC
+CHATCHATCHATCHATCHATCHATCHATCHATC
+CHATCHATCHATCHATCHATCHATCHATCHATC
 <span></span>
 <br>
-<div style="overflow-y: scroll; font-size: 40%; height: 100%;">
+<div style="overflow-y: scroll; font-size: 40%; height: 90%;">
 </div>
 
 <script>
-	let self = document.getElementById({{.Name}});
+	let self = document.getElementById("{{.Name}}");
 	Send(self,"load");
 
 	self.onWSEvent = function (msg) {
@@ -65,9 +82,9 @@ func (w *Youtube) Init(ctx context.Context) error {
 	return nil
 }
 
-func (w *Youtube) Dispatch(ctx context.Context, event []byte) error {
+func (w *Youtube) Dispatch(ctx context.Context, event string) error {
 	w.Log.Debug().Msg("Youtube loading")
-	if string(event) == "load" && w.StartChan != nil {
+	if event == "load" && w.StartChan != nil {
 		close(w.StartChan)
 		w.StartChan = nil
 	}

@@ -102,7 +102,7 @@ const tokenCacheFname = "youtube-go.json"
 
 func (y *Youtube) getClient(ctx context.Context, scope string) (*http.Client, error) {
 	app := app2.FromContext(ctx)
-	s := []byte(`{"installed":{"client_id":"456702871445-uhsk61jqld6hes2dqiht0jk1gfl8j9mt.apps.googleusercontent.com","project_id":"controlrake","auth_uri":"https://accounts.google.com/o/oauth2/auth","token_uri":"https://oauth2.googleapis.com/token","auth_provider_x509_cert_url":"https://www.googleapis.com/oauth2/v1/certs","client_secret":"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","redirect_uris":["http://localhost"]}}`)
+	s := []byte(`{"installed":{"client_id":"456702871445-uhsk61jqld6hes2dqiht0jk1gfl8j9mt.apps.googleusercontent.com","project_id":"controlrake","auth_uri":"https://accounts.google.com/o/oauth2/auth","token_uri":"https://oauth2.googleapis.com/token","auth_provider_x509_cert_url":"https://www.googleapis.com/oauth2/v1/certs","client_secret":"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","redirect_uris":["http://localhost"]}}`)
 
 	config := MUST2(google.ConfigFromJSON(s, scope))
 

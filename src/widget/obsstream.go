@@ -17,6 +17,7 @@ type ObsStream struct {
 }
 
 var _ = MustSurvive(RegisterWidgetType(&ObsStream{}, `
+<div style="display: inline-flex">
 	<span></span>
 	<span></span>
 	<span></span>
@@ -32,6 +33,7 @@ var _ = MustSurvive(RegisterWidgetType(&ObsStream{}, `
 			congestion.innerHTML = inf.Congestion;
 		}
 	</script>
+</div>
 `))
 
 type ObsStreamInfo struct {

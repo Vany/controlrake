@@ -14,7 +14,7 @@
 
 <script defer>
     ConnectWebsocket("ws");
-    FetchWidgets();
+    FetchWidgets("");
 
 
     function onWSMessage(ev) {
@@ -27,8 +27,8 @@
         else console.log(name, " have no ws event listener");
     }
 
-    function FetchWidgets() {
-        fetch("/widgets/")
+    function FetchWidgets(path) {
+        fetch("/widgets/" + path)
             .then((response) => response.text())
             .then((text) => {
                 let c = document.getElementById("content");

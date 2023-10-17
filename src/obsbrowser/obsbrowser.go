@@ -3,12 +3,12 @@
 package obsbrowser
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/vany/controlrake/src/app"
 	"github.com/vany/controlrake/src/types"
+	"strings"
 	"sync"
 	"time"
 )
@@ -66,13 +66,13 @@ func (o *Browser) Send(ctx context.Context, msg string) types.ObsSendObject {
 	return ret
 }
 
-func (o *Browser) Dispatch(ctx context.Context, b []byte) error {
-	parts := bytes.SplitN(b, []byte{'|'}, 2)
-	if uuid, err := uuid.ParseBytes(parts[0]); err != nil {
+func (o *Browser) Dispatch(ctx context.Context, b string) error {
+	parts := strings.SplitN(b, "|", 2)
+	if uuid, err := uuid.Parse(parts[0]); err != nil {
 		return fmt.Errorf("parse uuid %s: %w", parts[0], err)
 	} else if so, ok := o.Receivers[uuid]; !ok {
 		return fmt.Errorf("SendObject(%s) not found", parts[0])
-	} else if bytes.HasPrefix(parts[1], []byte("done")) {
+	} else if strings.HasPrefix(parts[1], "done") {
 		o.Mu.Lock()
 		defer o.Mu.Unlock()
 		o.CloseObject(ctx, uuid)

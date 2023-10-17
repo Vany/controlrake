@@ -12,7 +12,7 @@ type Component interface {
 }
 
 type WidgetRegistry interface {
-	Dispatch(ctx context.Context, b []byte) error
+	Dispatch(ctx context.Context, b string) error
 	SendChan() chan string
 	RenderTo(ctx context.Context, w io.Writer) error
 }
@@ -23,7 +23,7 @@ type Obs interface {
 
 type ObsBrowser interface {
 	Send(ctx context.Context, msg string) ObsSendObject // send message to obs browser html
-	Dispatch(ctx context.Context, b []byte) error       // receive event from obs browser html
+	Dispatch(ctx context.Context, b string) error       // receive event from obs browser html
 	SendChan() chan string                              // channel from server to page
 }
 

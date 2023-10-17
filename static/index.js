@@ -22,12 +22,22 @@ function ConnectWebsocket(handler) {
     };
 }
 
-function Send(obj, msg) {
+function EvaluateMyPath(obj, path) {
+    if (!obj.classList.contains("widget")) {
+        obj = obj.parentNode.closest(".widget");
+    }
+
     let pa  = obj.parentNode.closest(".widget");
     if (pa) {
-        Send(pa, obj.id + "|" + msg)
-    } else if (WS.readyState == WebSocket.OPEN) {
-        WS.send(msg)
+        return EvaluateMyPath(pa, path == undefined ? obj.id : obj.id + "|" + path)
+    } else {
+        return obj.id + "|" + path
+    }
+}
+
+function Send(obj, msg) {
+     if (WS.readyState == WebSocket.OPEN) {
+        WS.send(EvaluateMyPath(obj) + "|" +msg)
     } else {
         console.log("lost: " + msg);
     }

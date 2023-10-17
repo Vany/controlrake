@@ -9,19 +9,12 @@ Obs:
 Widget:
   - Name: C
     Type: Container
-    Style: 'display: grid; grid-template-columns: 1fr 1fr'
+    Style: "height: 100%"
     Args:
       - Name: Buttons
         Type: Container
-        Style: 'align: left'
+        Style: "display: flex; flex-wrap: wrap;"
         Args:
-        - Name: Applause
-          Type: Button
-          Caption: 👏
-          Args:
-           Action:
-            PlaySound: Applause.mp3
-
         - Name: Applause
           Type: Button
           Caption: 👏
@@ -71,19 +64,12 @@ Widget:
             Action:
               PlaySound: xfiles.mp3
 
-#        - Name: hrbr1
-#          Type: HrBr
-
         - Name: ObsHtmlMario
           Type: Button
           Caption: ⛑
           Args:
             Action:
               PlaySound: mario.mp3
-
-      #  - Name: Часики
-      #    Type: Clock
-      #    Args: "15:04:05 MST"
 
         - Name: ObsRecord
           Type: ObsRecord
@@ -130,11 +116,10 @@ Widget:
             Action:
               CommandLine: bash -c ls
 
-      - Name: ChatContainer
+
+      - Name: Chats
         Type: Container
-        Style: 'align: right'
         Args:
-          - Name: Youtube
-            Type: Youtube
-            Args:
-              HighlightRegex: "@vany"
+
+        - Name: Youtube
+          Type: Youtube

@@ -2,33 +2,37 @@
 package widget
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"github.com/mitchellh/mapstructure"
 	"github.com/rs/zerolog"
 	app2 "github.com/vany/controlrake/src/app"
-	"html/template"
+	. "github.com/vany/pirog"
 	"io"
 	"reflect"
-
-	. "github.com/vany/pirog"
+	"text/template"
 )
 
 var TypeRegistry = make(map[string]reflect.Type)           // typename => widgettype
 var TemplateRegistry = make(map[string]*template.Template) // typename => html.template
 
+type RawHTML string
+
+func (r RawHTML) String() string { return string(r) } // template.JS
+
 func RegisterWidgetType(w Widget, tmplstring string) error {
 	t := reflect.TypeOf(w).Elem()
 	TypeRegistry[t.Name()] = t
 	if tmpl, err := template.New(t.Name()).Funcs(map[string]any{
-		"UnEscape": func(s string) template.JS { return template.JS(s) },
+		"WriteBuffer": func() io.Writer { return &bytes.Buffer{} },
 	}).Parse(
-		`<div class="widget" id={{.Name}} {{if .Style}}style="{{.Style}}"{{end}}>` + tmplstring + `</div>`,
-		//`<div class="widget" id={{.Name}} >` + tmplstring + `</div>`,
+		`<div class="widget" id="{{.Name}}" {{if .Style}}style="{{.Style}}"{{end}}>` + tmplstring + `</div>`,
 	); err != nil {
 		return fmt.Errorf("can't compile html template for %s: %w", t.Name(), err)
 	} else {
 		TemplateRegistry[t.Name()] = tmpl
+		tmpl.Templates()
 	}
 	return nil
 }
@@ -72,7 +76,7 @@ func InitChildren(ctx context.Context, w Widget) error {
 
 type Widget interface {
 	Init(ctx context.Context) error                   // init widget with config in it's base
-	Dispatch(ctx context.Context, event []byte) error // consume one event from Websocket
+	Dispatch(ctx context.Context, event string) error // consume one event from Websocket
 	RenderTo(ctx context.Context, wr io.Writer) error // render visual representation
 	SendChan() chan string                            // get channel where out messages is
 	Send(event string) error                          // Send something to all my visual representations
@@ -96,7 +100,7 @@ type BaseWidget struct {
 }
 
 // Consume websocket message in separate goroutine
-func (w *BaseWidget) Dispatch(ctx context.Context, event []byte) error {
+func (w *BaseWidget) Dispatch(ctx context.Context, event string) error {
 	return w.Errorf("Dispatch() is not implemented")
 }
 
