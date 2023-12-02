@@ -16,7 +16,7 @@ type Scenes struct {
 }
 
 var _ = MustSurvive(RegisterWidgetType(&Scenes{}, `
-<select></select>
+<select style="font-size: xx-large"></select>
 <script>
 	let self = document.getElementById("{{.Name}}");
 	Send(self,"load");

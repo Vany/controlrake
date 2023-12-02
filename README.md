@@ -17,7 +17,14 @@ You can attend it every monday/wensday/friday evening.
 [on twitch](https://www.twitch.tv/vanyserezhkin) or [Youtube](https://www.youtube.com/@vanyserezhkin)
 
 
-## live ideas and progress traking
+## How to use
+You can watch entire show, but it is impossible for regular human.
+1. Configure config.yml (it have working defaults, so you can reconfigure widgets when you ned it)
+2. Add http://localhost:8888/static/obs.html to OBS as websource and fit it boundaries to the screen.
+3. Disable screen locking on mobile device (also it is a good idea to start charging it)
+4. Launch application, scan qr code with mobile phone and you're done, you can control your stream from deck aside of your laptop.
+
+## Live ideas and progress traking
 https://github.com/users/Vany/projects/1
 and in
 https://gist.github.com/Vany/d7263fa45e39b38cef91f63d9d7e3caa

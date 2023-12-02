@@ -26,29 +26,35 @@ type Button struct {
 }
 
 var _ = MustSurvive(RegisterWidgetType(&Button{}, `
-<button>{{.Caption}}</button>
+<button style="font-size: xx-large">{{.Caption}}</button>
 
 <script>
-	let self = document.getElementById("{{.Name}}")
+	let self = document.getElementById("{{.Name}}");
 	{{if not .Args.Action }} // button have an action
 	self.onclick = function() {
 		Send(this,"click")
 	};
 	{{else}}
+	
+	let bu = self.getElementsByTagName("button")[0];
+	self.OldBackground = self.style.background;
+	self.Bu_OldBackground = bu.style.background;
+	
 	self.onclick = function() {
 		Send(this,"click");
 		self.style.background = "#00ff00";
+		bu.style.background="transparent";
 	};
 
-	{{.Name}}_Background = self.style.background;
 
 	self.onWSEvent = function (msg) {
 		let [event, data] = msg.split("|", 2);
 		if (msg == "done") {
-			self.style.background = {{.Name}}_Background;
+			self.style.background = self.OldBackground;
+			bu.style.background = self.Bu_OldBackground;
 		} else if (event == "progress") {
 			let saturation =  Math.round(0xff * data);
-			self.style.background = "#" + saturation.toString(16).padStart(2, "0") + "ff" + saturation.toString(16).padStart(2, "0"); 			 
+			bu.style.background = "#" + saturation.toString(16).padStart(2, "0") + "ff" + saturation.toString(16).padStart(2, "0"); 			 
 		} else if (event == "out") {
 			console.log("CMD: " + data);
 		} 

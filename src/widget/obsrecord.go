@@ -16,7 +16,7 @@ type ObsRecord struct {
 }
 
 var _ = MustSurvive(RegisterWidgetType(&ObsRecord{}, `
-<div style="display: inline-flex">
+<div style="display: inline-flex; font-size: xx-large">
 
 	<button onclick="Send(this, 'rec')">⏺️</button>
 	<span></span>

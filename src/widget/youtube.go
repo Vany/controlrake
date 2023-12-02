@@ -19,23 +19,6 @@ type Youtube struct {
 }
 
 var _ = MustSurvive(RegisterWidgetType(&Youtube{}, `
-CHATCHATCHATCHATCHATCHATCHATCHATC
-CHATCHATCHATCHATCHATCHATCHATCHATC
-CHATCHATCHATCHATCHATCHATCHATCHATC
-CHATCHATCHATCHATCHATCHATCHATCHATC
-CHATCHATCHATCHATCHATCHATCHATCHATC
-CHATCHATCHATCHATCHATCHATCHATCHATC
-CHATCHATCHATCHATCHATCHATCHATCHATC
-CHATCHATCHATCHATCHATCHATCHATCHATC
-CHATCHATCHATCHATCHATCHATCHATCHATC
-CHATCHATCHATCHATCHATCHATCHATCHATC
-CHATCHATCHATCHATCHATCHATCHATCHATC
-CHATCHATCHATCHATCHATCHATCHATCHATC
-CHATCHATCHATCHATCHATCHATCHATCHATC
-CHATCHATCHATCHATCHATCHATCHATCHATC
-CHATCHATCHATCHATCHATCHATCHATCHATC
-CHATCHATCHATCHATCHATCHATCHATCHATC
-CHATCHATCHATCHATCHATCHATCHATCHATC
 <span></span>
 <br>
 <div style="overflow-y: scroll; font-size: 40%; height: 90%;">
@@ -69,13 +52,15 @@ func (w *Youtube) Init(ctx context.Context) error {
 			<-time.After(time.Second)
 		}
 		w.Log.Info().Msg("Youtube component found")
+		<-time.After(5 * time.Second)
 		cc := app.Youtube.(*youtube.Youtube).GetChatConnection(ctx, w.PerPage)
 		for {
+
 			w.Send(ToJson([]any{cc.Info, MAP(cc.Spin(ctx), template.HTMLEscapeString)}))
-			<-time.After(5 * time.Second)
 			if ctx.Err() != nil {
 				return
 			}
+			<-time.After(15 * time.Second)
 		}
 	}()
 
