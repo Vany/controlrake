@@ -3,7 +3,6 @@ package widget
 import (
 	"bufio"
 	"context"
-	"fmt"
 	"github.com/mitchellh/mapstructure"
 	"github.com/vany/controlrake/src/app"
 	. "github.com/vany/pirog"
@@ -104,7 +103,7 @@ func (w *Button) Dispatch(ctx context.Context, event string) error {
 	}
 
 	if w.Args.Action.Html != "" {
-		sendObj := app.ObsBrowser.Send(ctx, fmt.Sprintf("Html|%s", w.Args.Action.Html))
+		sendObj := app.ObsBrowser.Send(ctx, "Html|"+w.Args.Action.Html)
 		go func() {
 			for {
 				select {

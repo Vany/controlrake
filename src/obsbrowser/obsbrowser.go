@@ -35,12 +35,12 @@ func New(ctx context.Context) *Browser {
 			app.FromContext(ctx).Log.Debug().Msg("obs browser garbage collection")
 			t := now.Add(-10 * time.Minute)
 			self.Mu.Lock()
-			defer self.Mu.Unlock()
 			for k, v := range self.LastAccessed {
 				if v.Before(t) {
 					self.CloseObject(ctx, k)
 				}
 			}
+			self.Mu.Unlock()
 		}
 	}()
 	return &self
@@ -58,9 +58,9 @@ func (o *Browser) Send(ctx context.Context, msg string) types.ObsSendObject {
 		ReceiveChan: make(chan string),
 	}
 	o.Mu.Lock()
-	defer o.Mu.Unlock()
 	o.Receivers[uuid] = ret
 	o.LastAccessed[uuid] = time.Now()
+	o.Mu.Unlock()
 
 	log.Debug().Str("msg", msg).Msg("Sent")
 	return ret
@@ -74,13 +74,13 @@ func (o *Browser) Dispatch(ctx context.Context, b string) error {
 		return fmt.Errorf("SendObject(%s) not found", parts[0])
 	} else if strings.HasPrefix(parts[1], "done") {
 		o.Mu.Lock()
-		defer o.Mu.Unlock()
 		o.CloseObject(ctx, uuid)
+		o.Mu.Unlock()
 	} else {
-		so.ReceiveChan <- string(parts[1])
+		so.ReceiveChan <- parts[1]
 		o.Mu.Lock()
-		defer o.Mu.Unlock()
 		o.LastAccessed[uuid] = time.Now()
+		o.Mu.Unlock()
 	}
 	return nil
 }

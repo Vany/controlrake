@@ -1,6 +1,6 @@
 module github.com/vany/controlrake
 
-go 1.21.0
+go 1.22
 
 require (
 	github.com/andreykaipov/goobs v0.12.1

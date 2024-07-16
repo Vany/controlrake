@@ -32,7 +32,6 @@ func RegisterWidgetType(w Widget, tmplstring string) error {
 		return fmt.Errorf("can't compile html template for %s: %w", t.Name(), err)
 	} else {
 		TemplateRegistry[t.Name()] = tmpl
-		tmpl.Templates()
 	}
 	return nil
 }
@@ -99,6 +98,11 @@ type BaseWidget struct {
 	Log    zerolog.Logger // logger for specified widget
 }
 
+func (w *BaseWidget) Init(ctx context.Context) error { return nil }
+func (w *BaseWidget) Base() *BaseWidget              { return w }
+func (w *BaseWidget) SendChan() chan string          { return w.Chan }
+func (w *BaseWidget) Children() map[string]Widget    { return nil }
+
 // Consume websocket message in separate goroutine
 func (w *BaseWidget) Dispatch(ctx context.Context, event string) error {
 	return w.Errorf("Dispatch() is not implemented")
@@ -113,16 +117,6 @@ func (w *BaseWidget) RenderTo(ctx context.Context, wr io.Writer) error {
 	}
 }
 
-func (w *BaseWidget) Init(ctx context.Context) error {
-	return nil
-}
-
-func (w *BaseWidget) Base() *BaseWidget {
-	return w
-}
-
-func (w *BaseWidget) SendChan() chan string { return w.Chan }
-
 func (w *BaseWidget) Send(msg string) error {
 	w.Chan <- w.Name + "|" + msg
 	return nil
@@ -135,8 +129,4 @@ func (w *BaseWidget) Errorf(f string, args ...any) error {
 func MustSurvive(err error) struct{} {
 	MUST(err)
 	return struct{}{}
-}
-
-func (w *BaseWidget) Children() map[string]Widget {
-	return nil
 }
