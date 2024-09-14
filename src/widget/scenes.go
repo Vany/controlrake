@@ -54,7 +54,7 @@ func (w *Scenes) Dispatch(ctx context.Context, event string) error {
 
 	if sc, ok := strings.CutPrefix(event, "set|"); ok {
 		if _, err := obs.Wrapper(ctx, o, func() (*scenes.SetCurrentProgramSceneResponse, error) {
-			return o.Client.Scenes.SetCurrentProgramScene(&scenes.SetCurrentProgramSceneParams{SceneName: sc})
+			return o.Client.Scenes.SetCurrentProgramScene(&scenes.SetCurrentProgramSceneParams{SceneName: &sc})
 		}); err != nil {
 			w.Log.Error().Str("event", event).Err(err).Msg("SetCurrentProgramScene()")
 		}
