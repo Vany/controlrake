@@ -2,57 +2,68 @@ package httpserver
 
 import (
 	"context"
-	"fmt"
-	"github.com/vany/controlrake/src/app"
-	"github.com/vany/controlrake/src/widget"
-	"golang.org/x/net/websocket"
+	"errors"
 	"io"
 	"net"
 	"net/http"
 	"strings"
-	"sync"
+
+	"github.com/rs/zerolog"
+	"github.com/vany/controlrake/src/config"
+	"github.com/vany/controlrake/src/httpserver/api"
+	. "github.com/vany/pirog"
+	"golang.org/x/net/websocket"
 )
 
 type HTTPServer struct {
+	Cfg             *api.Config
+	Config          *config.ConfigComponent `inject:"Config"`
+	Logger          *zerolog.Logger         `inject:"Logger"`
+	ObsBrowser      api.Comunicativo        `inject:"ObsBrowser"`
+	WidgetComponent api.Widget              `inject:"WidgetComponent"`
+
 	Server             *http.Server
 	HandlersToRegister map[string]http.Handler
 }
 
-func New(ctx context.Context) (*HTTPServer, error) {
-	s := new(HTTPServer)
-	app := app.FromContext(ctx)
-	s.HandlersToRegister = make(map[string]http.Handler)
+func New() *HTTPServer {
+	return &HTTPServer{
+		HandlersToRegister: make(map[string]http.Handler),
+	}
+}
+
+func (s *HTTPServer) Init(ctx context.Context) error {
+	s.Cfg = &s.Config.HTTP
+	s.Logger = REF(s.Logger.With().Str("comp", "HTTP").Logger())
 	s.Server = &http.Server{
-		Addr:        app.Cfg.BindAddress,
+		Addr:        s.Cfg.Addr,
 		ConnState:   nil,
 		BaseContext: func(net.Listener) context.Context { return ctx },
 	}
-
-	go func() {
-		select {
-		case <-ctx.Done():
-			s.Server.Shutdown(ctx)
-		}
-	}()
-
-	return s, nil
+	s.Logger.Info().Msg("Initialized")
+	return nil
 }
 
-func (s *HTTPServer) RegisterHandler(path string, handler http.Handler) {
-	s.HandlersToRegister[path] = handler
-}
-
-func (s *HTTPServer) InitStage1(ctx context.Context) error {
-	s.Server.Handler = s.Mux(ctx)
-	log := app.FromContext(ctx).Logger()
+func (s *HTTPServer) Run(ctx context.Context) error {
+	s.Server.Handler = &LoggingHandler{s.Mux(ctx), s.Logger}
 	go func() {
-		if err := s.Server.ListenAndServe(); err == http.ErrServerClosed {
-			log.Info().Msg("http server shut down gracefully")
+		if err := s.Server.ListenAndServe(); errors.Is(err, http.ErrServerClosed) {
+			s.Logger.Info().Msg("http server shut down gracefully")
 		} else {
 			panic("can't http server: " + err.Error())
 		}
 	}()
+	s.Logger.Info().Msg("Launched")
 	return nil
+}
+
+func (s *HTTPServer) Stop(ctx context.Context) error {
+	s.Server.Shutdown(ctx)
+	return nil
+}
+
+func (s *HTTPServer) RegisterHandler(path string, handler http.Handler) {
+	s.HandlersToRegister[path] = handler
 }
 
 func (s *HTTPServer) GetBaseUrl(host string) string {
@@ -68,118 +79,75 @@ func (s *HTTPServer) GetBaseUrl(host string) string {
 }
 
 func (s *HTTPServer) Mux(ctx context.Context) http.Handler {
-	app := app.FromContext(ctx)
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "/static/", 302)
-	})
+	mux.Handle("/", http.RedirectHandler("/static/index.html", 302))
+	mux.Handle("/obs", http.RedirectHandler("/static/obs.html", 302))
+
+	const fav = "/favicon.ico"
+	mux.Handle(fav, http.RedirectHandler("/static"+fav, 302))
 
 	const sta = "/static/"
-	mux.Handle(sta,
-		http.StripPrefix(sta,
-			http.FileServer(http.Dir(app.Cfg.StaticRoot)),
-		))
+	mux.Handle(sta, http.StripPrefix(sta, http.FileServer(http.Dir(s.Cfg.StaticRoot))))
 
-	mux.Handle("/sound/",
-		http.StripPrefix("/sound/",
-			http.FileServer(http.Dir(app.Cfg.SoundRoot)),
-		))
+	const sound = "/sound/"
+	mux.Handle(sound, http.StripPrefix(sound, http.FileServer(http.Dir(s.Cfg.SoundRoot))))
 
-	mux.HandleFunc("/googleoauth2", GoogleOAUTH2(ctx))
+	const widgets = "/widgets/"
+	mux.Handle(widgets, http.StripPrefix(widgets, RenderWidgets{s}))
 
-	mux.HandleFunc("/widgets/", RenderWidgets)
-	mux.Handle("/ws", websocket.Handler(CreateWsHandleFunc(ctx, app.Widget)))
-	mux.Handle("/wsobs", websocket.Handler(CreateWsHandleFunc(ctx, app.ObsBrowser)))
+	mux.Handle("/ws", s.CreateWsHandleFunc(ctx, s.WidgetComponent))
+	mux.Handle("/wsobs", s.CreateWsHandleFunc(ctx, s.ObsBrowser))
 
 	for path, handler := range s.HandlersToRegister {
 		mux.Handle(path, handler)
 	}
 	s.HandlersToRegister = nil
 
-	return &LoggingHandler{mux}
+	return mux
 }
 
-// TODO put this to youtube package
-func GoogleOAUTH2(ctx context.Context) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		app := app.FromContext(ctx)
-		log := app.Logger()
-		code := r.FormValue("code")
-		w.Header().Set("Content-Type", "text/plain")
-		fmt.Fprintf(w, "Received code: %v\r\nYou can now safely close this browser window.", code)
-		if cch := app.Youtube.GetCodeChan(); cch == nil {
-			log.Error().Msg("Codechan is nil")
-		} else {
-			cch <- code
-		}
+type RenderWidgets struct{ *HTTPServer }
+
+func (rw RenderWidgets) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if err := rw.WidgetComponent.RenderTo(r.Context(), r.URL.Path, w); err != nil {
+		rw.Logger.Error().Err(err).Send()
 	}
 }
 
-type BaseWidget interface{ Base() *widget.BaseWidget }
-
-func RenderWidgets(w http.ResponseWriter, r *http.Request) {
-	app := app.FromContext(r.Context())
-	wi := app.Widget
-	path := strings.Split(r.URL.Path, "/")[2:]
-	if root, ok := wi.(BaseWidget); !ok {
-	} else if root.Base().Name != path[0] {
-	} else {
-		for _, p := range path[1:] {
-			if ww, ok := wi.(*widget.Container); !ok {
-				break
-			} else if wi, ok = ww.Map[p]; !ok {
-
-				wi = app.Widget
-				break
-			}
-		}
-	}
-
-	log := app.Logger()
-	if err := wi.RenderTo(r.Context(), w); err != nil {
-		log.Error().Err(err).Send()
-	}
+type LoggingHandler struct {
+	H      http.Handler
+	Logger *zerolog.Logger
 }
-
-type LoggingHandler struct{ http.Handler }
 
 func (h *LoggingHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	app := app.FromContext(r.Context())
-	log := app.Logger()
-	h.Handler.ServeHTTP(w, r)
-	log.Info().Str("url", r.URL.String()).Send()
+	h.H.ServeHTTP(w, r)
+	h.Logger.Info().Str("url", r.URL.String()).Send()
 }
 
-// WsSubsystem - subsystem with chan for websocket
-type WsSubsystem interface {
-	Dispatch(ctx context.Context, b string) error // receive event from obs browser html
-	SendChan() chan string                        // channel from server to page
-}
-
-func CreateWsHandleFunc(ctx context.Context, subsystem WsSubsystem) func(conn *websocket.Conn) {
-	cpc := COPYCHAN(ctx.Done(), subsystem.SendChan())
+func (s *HTTPServer) CreateWsHandleFunc(ctx context.Context, subsystem api.Comunicativo) websocket.Handler {
+	localChaner := FANOUT(subsystem.WebSpittoon())
 	return func(ws *websocket.Conn) {
 		defer ws.Close()
-		ctx := ws.Request().Context()
-		app := app.FromContext(ctx)
-		log := app.Logger()
+		log := s.Logger
 		log.Debug().Str("url", ws.Request().URL.String()).Msg("I'm in ws handler")
 		wsctx, cf := context.WithCancel(ctx)
 		defer cf()
 
-		send, senddetroy := cpc()
+		send, senddetroy := localChaner()
 		defer senddetroy()
 
 		go func() {
 			for {
 				select {
-				case msg := <-send: // widgets.SendChan
+				case msg := <-send: // widgets.Spittoon tee
 					if fw, err := ws.NewFrameWriter(websocket.TextFrame); err != nil {
 						log.Error().Err(err).Msg("Can't create new websocket frame")
 					} else {
 						fw.Write([]byte(msg))
 					}
 				case <-wsctx.Done():
+					log.Debug().Msg("WS Service terminated")
+
 					return
 				}
 			}
@@ -199,60 +167,17 @@ func CreateWsHandleFunc(ctx context.Context, subsystem WsSubsystem) func(conn *w
 
 			log.Debug().Interface("payload", f.PayloadType()).Msg("New WS frame")
 
-			b, err := io.ReadAll(f)
-
-			if err != nil {
+			if b, err := io.ReadAll(f); err != nil {
 				log.Error().Err(err).Msg("websocket frame failed")
-			} else {
 
-				if err := subsystem.Dispatch(ctx, string(b)); err != nil {
-					log.Error().Err(err).Msg("Receiver failed")
-				} else {
-					log.Info().Bytes("payload", b).Msg("websocket frame arrived")
-				}
+			} else if err := subsystem.WebIngest(ctx, string(b)); err != nil {
+				log.Error().Err(err).Msg("Receiver failed")
+
+			} else {
+				log.Debug().Msg("websocket frame served")
 			}
+
 		}
 		log.Debug().Msg("websocket close")
-
-	}
-}
-
-func COPYCHAN[T any](done <-chan struct{}, src chan T) (
-	generator func() (tap chan T, destructor func()),
-) {
-	var mu sync.RWMutex
-	chans := make(map[chan T]struct{})
-
-	go func() {
-		for {
-			select {
-			case msg := <-src:
-				mu.RLock()
-				for c, _ := range chans {
-					c <- msg
-				}
-				mu.RUnlock()
-			case <-done:
-				mu.Lock()
-				for c, _ := range chans {
-					close(c)
-					delete(chans, c)
-				}
-				mu.Unlock()
-				return
-			}
-		}
-	}()
-
-	return func() (tap chan T, destructor func()) {
-		ret := make(chan T)
-		mu.Lock()
-		chans[ret] = struct{}{}
-		mu.Unlock()
-		return ret, func() {
-			mu.Lock()
-			delete(chans, ret)
-			mu.Unlock()
-		}
 	}
 }

@@ -9,7 +9,7 @@
 
 </body>
 <script defer>
-    ConnectWebsocket("wsobs");
+    ConnectWebsocket("wsobs", ()=>{});
     const content = document.getElementById("content")
 
     const  SendObject = (uuid) => (msg) => {
@@ -55,7 +55,7 @@
                 }
             },
             close: function () {
-                this.so("done");
+                this.so("close");
                 this.timer = null;
                 this.till = 0;
                 content.innerHTML = "";
@@ -83,7 +83,7 @@
                 }, 1000)
             },
             close: function () {
-                this.so("done");
+                this.so("close");
                 this.a.pause();
                 this.a = null;
             },

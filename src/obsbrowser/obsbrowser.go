@@ -6,78 +6,92 @@ import (
 	"context"
 	"fmt"
 	"github.com/google/uuid"
-	"github.com/vany/controlrake/src/app"
-	"github.com/vany/controlrake/src/types"
+	"github.com/rs/zerolog"
+	"github.com/vany/controlrake/src/config"
+	"github.com/vany/controlrake/src/obsbrowser/api"
+	"github.com/vany/pirog"
 	"strings"
 	"sync"
 	"time"
 )
 
-type Browser struct {
-	Chan         chan string
-	Receivers    map[uuid.UUID]*SendObject
-	LastAccessed map[uuid.UUID]time.Time
-	Mu           sync.Mutex
+type ObsBrowser struct {
+	Cfg    *api.Config
+	Config *config.ConfigComponent `inject:"Config"`
+	Logger *zerolog.Logger         `inject:"Logger"`
+
+	ToWebChan     chan string
+	Receivers     map[uuid.UUID]*api.Request
+	LastAccessed  map[uuid.UUID]time.Time
+	Mu            sync.Mutex
+	ToWebRequests chan *api.Request
 }
 
-func New(ctx context.Context) *Browser {
-	self := Browser{
-		Chan:         make(chan string, 1),
-		Receivers:    make(map[uuid.UUID]*SendObject),
-		LastAccessed: make(map[uuid.UUID]time.Time),
-	}
+func (o *ObsBrowser) WebSpittoon() chan string { return o.ToWebChan }
 
-	go func() {
+func New() *ObsBrowser {
+	return &ObsBrowser{
+		ToWebChan:     make(chan string, 1),
+		ToWebRequests: make(chan *api.Request),
+		Receivers:     make(map[uuid.UUID]*api.Request),
+		LastAccessed:  make(map[uuid.UUID]time.Time),
+	}
+}
+
+func (o *ObsBrowser) Init(ctx context.Context) error {
+	o.Cfg = &o.Config.ObsBrowser
+	o.Logger = pirog.REF(o.Logger.With().Str("comp", "obsws").Logger())
+
+	go func() { // todo refactor this to something like request/response.
 		select {
 		case <-ctx.Done():
 			return
+
 		case now := <-time.Tick(30 * time.Second):
-			app.FromContext(ctx).Log.Debug().Msg("obs browser garbage collection")
+			o.Logger.Debug().Msg("obs browser garbage collection")
 			t := now.Add(-10 * time.Minute)
-			self.Mu.Lock()
-			for k, v := range self.LastAccessed {
+			o.Mu.Lock()
+			for k, v := range o.LastAccessed {
 				if v.Before(t) {
-					self.CloseObject(ctx, k)
+					o.CloseObject(ctx, k)
 				}
 			}
-			self.Mu.Unlock()
+			o.Mu.Unlock()
 		}
 	}()
-	return &self
+
+	return nil
 }
 
-func (o *Browser) SendChan() chan string { return o.Chan }
+func (o *ObsBrowser) Run(ctx context.Context) error  { return nil }
+func (o *ObsBrowser) Stop(ctx context.Context) error { return nil }
 
-// TODO  optimize cleaner with priority queue
-func (o *Browser) Send(ctx context.Context, msg string) types.ObsSendObject {
-	log := app.FromContext(ctx).Logger()
+// ToWeb - Channel to send requests to webpage in obs browser
+func (o *ObsBrowser) ToWeb(ctx context.Context, msg string) *api.Request {
+	r := pirog.REQUEST[string, string](msg)
 	uuid := uuid.New()
-	o.Chan <- uuid.String() + "|" + msg
-	ret := &SendObject{
-		DoneChan:    make(chan struct{}),
-		ReceiveChan: make(chan string),
-	}
+	pirog.SEND(ctx, o.ToWebChan, uuid.String()+"|"+msg)
 	o.Mu.Lock()
-	o.Receivers[uuid] = ret
+	o.Receivers[uuid] = &r
 	o.LastAccessed[uuid] = time.Now()
 	o.Mu.Unlock()
-
-	log.Debug().Str("msg", msg).Msg("Sent")
-	return ret
+	o.Logger.Debug().Str("msg", r.REQ).Msg("Sent")
+	return &r
 }
 
-func (o *Browser) Dispatch(ctx context.Context, b string) error {
-	parts := strings.SplitN(b, "|", 2)
+// WebIngest - ws handler for httpserver
+func (o *ObsBrowser) WebIngest(ctx context.Context, data string) error {
+	parts := strings.SplitN(data, "|", 2)
 	if uuid, err := uuid.Parse(parts[0]); err != nil {
 		return fmt.Errorf("parse uuid %s: %w", parts[0], err)
-	} else if so, ok := o.Receivers[uuid]; !ok {
+	} else if r, ok := o.Receivers[uuid]; !ok {
 		return fmt.Errorf("SendObject(%s) not found", parts[0])
-	} else if strings.HasPrefix(parts[1], "done") {
+	} else if strings.HasPrefix(parts[1], "close") {
 		o.Mu.Lock()
 		o.CloseObject(ctx, uuid)
 		o.Mu.Unlock()
 	} else {
-		so.ReceiveChan <- parts[1]
+		r.RESPOND(ctx, parts[1])
 		o.Mu.Lock()
 		o.LastAccessed[uuid] = time.Now()
 		o.Mu.Unlock()
@@ -85,25 +99,11 @@ func (o *Browser) Dispatch(ctx context.Context, b string) error {
 	return nil
 }
 
-func (o *Browser) CloseObject(ctx context.Context, u uuid.UUID) {
-	app.FromContext(ctx).Log.Debug().Str("uuid", u.String()).Msg("removed")
-	so, ok := o.Receivers[u]
-	if ok {
-		close(so.DoneChan)
+func (o *ObsBrowser) CloseObject(ctx context.Context, u uuid.UUID) {
+	o.Logger.Debug().Str("uuid", u.String()).Msg("removed")
+	if r, ok := o.Receivers[u]; ok {
+		close(r.RES)
 	}
 	delete(o.Receivers, u)
 	delete(o.LastAccessed, u)
-}
-
-type SendObject struct {
-	DoneChan    chan struct{}
-	ReceiveChan chan string
-}
-
-func (s *SendObject) Done() chan struct{} {
-	return s.DoneChan
-}
-
-func (s *SendObject) Receive() chan string {
-	return s.ReceiveChan
 }

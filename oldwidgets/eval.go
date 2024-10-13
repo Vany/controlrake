@@ -1,11 +1,11 @@
-package widget
+package oldwidgets
 
 import (
-	"context"
-	"github.com/vany/controlrake/src/app"
+	"github.com/vany/controlrake/src/widget/impl"
+	"golang.org/x/net/context"
 )
 
-var _ = MustSurvive(RegisterWidgetType(&Eval{}, `
+var _ = impl.RegisterWidgetType(&Eval{}, `
 <input><br>
 <span></span>
 
@@ -20,22 +20,20 @@ var _ = MustSurvive(RegisterWidgetType(&Eval{}, `
 		}
 
 </script>
-`))
+`)
 
 type Eval struct {
-	BaseWidget
+	impl.BaseWidget
 }
 
 func (w *Eval) Dispatch(ctx context.Context, event string) error {
-	app := app.FromContext(ctx)
 	go func() {
-		so := app.ObsBrowser.Send(ctx, "Eval|"+string(event))
+		so := w.ObsBrowser.Send(ctx, "Eval|"+string(event))
 		ret := <-so.Receive()
 		w.Log.Info().Str("ret", ret).Msg("Eval received")
 		w.Send(ret)
 		<-so.Done()
 		w.Log.Info().Msg("Eval done")
-
 	}()
 	return nil
 }

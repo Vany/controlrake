@@ -1,21 +1,24 @@
-package widget
+package impl
 
 import (
-	"context"
 	"fmt"
+	"github.com/andreykaipov/goobs"
 	"github.com/andreykaipov/goobs/api/requests/record"
-	"github.com/vany/controlrake/src/app"
-	"github.com/vany/controlrake/src/obs"
-	. "github.com/vany/pirog"
+	obs_api "github.com/vany/controlrake/src/obs/api"
+	"github.com/vany/controlrake/src/widget/api"
+	"github.com/vany/pirog"
+	"golang.org/x/net/context"
 	"strings"
 	"time"
 )
 
+// ObsRecord - Control record via obs
 type ObsRecord struct {
 	BaseWidget
+	Obs obs_api.Obs
 }
 
-var _ = MustSurvive(RegisterWidgetType(&ObsRecord{}, `
+var _ = RegisterWidgetType(&ObsRecord{}, `
 <div style="display: inline-flex; font-size: xx-large">
 
 	<button onclick="Send(this, 'rec')">⏺️</button>
@@ -23,7 +26,6 @@ var _ = MustSurvive(RegisterWidgetType(&ObsRecord{}, `
 	<button onclick="Send(this, 'pause')">⏸️</button>
 
 	<script>
-		console.log("I'm OBS")
 		let self = document.getElementById("{{.Name}}")
 		self.onWSEvent = function (msg) {
 			const inf = JSON.parse(msg);
@@ -34,7 +36,7 @@ var _ = MustSurvive(RegisterWidgetType(&ObsRecord{}, `
 		}
 	</script>
 </div>
-`))
+`)
 
 type ObsRecordInfo struct {
 	Rec    bool
@@ -42,22 +44,23 @@ type ObsRecordInfo struct {
 	Length string
 }
 
-func (w *ObsRecord) Init(ctx context.Context) error {
+func (w *ObsRecord) Init(ctx context.Context, c api.WidgetConstructor) error {
+	w.Obs = c.GetComponent("Obs").(obs_api.Obs)
 	done := ctx.Done()
-	app := app.FromContext(ctx)
 	go func() {
-	STOP:
 		for {
 			select {
-			case <-time.Tick(time.Second):
-				o := app.Obs.(*obs.Obs)
-				inf, err := obs.Wrapper(ctx, o, func() (*record.GetRecordStatusResponse, error) {
-					return o.Client.Record.GetRecordStatus()
-				})
-				if err != nil {
+			// TODO: do not be that fast if not working and in stream too
+			case <-time.Tick(time.Second / 2):
+				inf := &record.GetRecordStatusResponse{}
+				if err := w.Obs.Execute(func(o *goobs.Client) (err error) {
+					inf, err = o.Record.GetRecordStatus()
+					return err
+				}); err != nil {
 					w.Log.Error().Err(err).Msg("obs failed to GetRecordStatus()")
 					continue
 				}
+
 				tarr := strings.SplitN(inf.OutputTimecode, ":", 3)
 				var length string
 				if len(tarr) > 1 {
@@ -67,14 +70,13 @@ func (w *ObsRecord) Init(ctx context.Context) error {
 				} else {
 					length = "timecode empty"
 				}
-				w.Send(ToJson(ObsRecordInfo{
+				w.SendToWeb(ctx, pirog.ToJson(ObsRecordInfo{
 					Rec:    inf.OutputActive,
 					Pause:  inf.OutputPaused,
 					Length: length,
 				}))
 			case <-done:
-				app.Log.Info().Msg("Clock shut down")
-				break STOP
+				return
 			}
 		}
 	}()
@@ -82,21 +84,20 @@ func (w *ObsRecord) Init(ctx context.Context) error {
 	return nil
 }
 
-func (w *ObsRecord) Dispatch(ctx context.Context, event string) error {
-	app := app.FromContext(ctx)
-	o := app.Obs.(*obs.Obs)
+func (w *ObsRecord) Dispatch(ctx context.Context, event string) (err error) {
 	w.Log.Log().Str("event", event).Msg("Pressed")
-	var err error
 
-	switch string(event) {
+	switch event {
 	case "rec":
-		_, err = obs.Wrapper(ctx, o, func() (*record.ToggleRecordResponse, error) {
-			return o.Client.Record.ToggleRecord()
+		w.Obs.Execute(func(o *goobs.Client) error {
+			_, err = o.Record.ToggleRecord()
+			return err
 		})
 
 	case "pause":
-		_, err = obs.Wrapper(ctx, o, func() (*record.ToggleRecordPauseResponse, error) {
-			return o.Client.Record.ToggleRecordPause()
+		w.Obs.Execute(func(o *goobs.Client) error {
+			_, err = o.Record.ToggleRecordPause()
+			return err
 		})
 
 	default:

@@ -13,8 +13,9 @@
 
 
 <script defer>
-    ConnectWebsocket("ws");
-    FetchWidgets("");
+    ConnectWebsocket("ws", () => FetchWidgets(""));
+
+    // TODO refetch widgets when server restarted
 
 
     function onWSMessage(ev) {
@@ -32,31 +33,15 @@
             .then((response) => response.text())
             .then((text) => {
                 let c = document.getElementById("content");
-                c.innerHTML = text
+                c.innerHTML = text;
                 for (let s of c.getElementsByTagName("script")) {
                     eval(s.innerText);
                 }
+
             });
     }
 
-
-
-    const canWakeLock = () => 'wakeLock' in navigator;
-    let wakelock;
-    async function lockWakeState() {
-        if(!canWakeLock()) return;
-        try {
-            wakelock = await navigator.wakeLock.request();
-            wakelock.addEventListener('release', () => {
-                console.log('Screen Wake State Locked:', !wakelock.released);
-            });
-            console.log('Screen Wake State Locked:', !wakelock.released);
-        } catch(e) {
-            console.error('Failed to lock wake state with reason:', e.message);
-        }
-    }
-
-    lockWakeState();
+    // TODO  -  Do not allow browser to dim monile screen
 
 </script>
 

@@ -2,91 +2,129 @@ package obs
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"github.com/andreykaipov/goobs"
-	"github.com/mitchellh/mapstructure"
-	"github.com/vany/controlrake/src/app"
-	"github.com/vany/controlrake/src/types"
+	"github.com/rs/zerolog"
+	"github.com/vany/controlrake/src/config"
+	"github.com/vany/controlrake/src/obs/api"
 	. "github.com/vany/pirog"
+	"reflect"
+	"sync/atomic"
 	"time"
 )
 
-type Config struct {
-	Server   string
-	Password string
-}
-
+// Obs - obs connection service routine.
 type Obs struct {
-	Config
-	Client *goobs.Client
-	Cancel func()
+	Config *config.ConfigComponent `inject:"Config"`
+	Logger *zerolog.Logger         `inject:"Logger"`
+
+	Cfg                      *api.Config
+	Client                   atomic.Pointer[goobs.Client]
+	connecting               atomic.Bool
+	availabilytyNotification *SUBSCRIPTION[bool, struct{}]    // notify that obs is ready to operate
+	eventStream              *SUBSCRIPTION[reflect.Type, any] // Obs events
 }
 
-// TODO provide logger to goobs
-// TODO subscriptions in New()
-
-func New(ctx context.Context) types.Obs {
-	con := app.FromContext(ctx)
-	obs := &Obs{}
-	mapstructure.Decode(con.Cfg.Obs, &obs.Config)
-
-	obs.Init(ctx)
-	return obs
+func New() *Obs {
+	return &Obs{
+		availabilytyNotification: NewSUBSCRIPTION[bool, struct{}](),
+		eventStream:              NewSUBSCRIPTION[reflect.Type, any](),
+	}
 }
 
-func (o *Obs) Init(ctx context.Context) {
-	log := app.FromContext(ctx).Logger()
-	cfctx, cf := context.WithCancel(ctx)
-	o.Cancel = cf
-	o.Client = nil
+func (o *Obs) Init(ctx context.Context) error {
+	o.Cfg = &o.Config.Obs
+	o.Logger = REF(o.Logger.With().Str("comp", "obs").Logger())
 
 	go func() {
-		pause := time.Microsecond
-	OUT:
+		dead := o.availabilytyNotification.Subscribe(false)
 		for {
+			if o.Client.Load() == nil {
+				go o.connect(ctx)
+			}
 			select {
-			case <-time.After(pause):
-				if c, err := goobs.New(o.Config.Server, goobs.WithPassword(o.Config.Password)); err != nil {
-					pause = TERNARY(pause > 10*time.Second, 10*time.Second, pause*2)
-				} else {
-					o.Client = c
-					break OUT
-				}
+			case <-ctx.Done():
+				return
+			case <-dead:
+				continue
 			}
 		}
-
-		<-cfctx.Done()
-		if o.Client == nil {
-			log.Debug().Msg("obs is nil")
-		} else {
-			err := o.Client.Disconnect()
-			log.Debug().Err(err).Msg("obs shut down")
-		}
 	}()
+
+	return nil
 }
 
-func (o *Obs) Cli() *goobs.Client {
-	return o.Client
+func (o *Obs) Run(ctx context.Context) error { return nil }
+
+func (o *Obs) Stop(ctx context.Context) error {
+	o.disconnect()
+	return nil
 }
 
-// TODO  make channel reading with timeout here instead of .Client polling (MAKE IT FRAMEWORK to pirog)
-// even not actual todo, rewrite this place if we will have more than one obs connection
-var cantConnect = fmt.Errorf("cant connect to obs for five seconds")
+// connect - try to connect until we are connected or need exit
+func (o *Obs) connect(ctx context.Context) {
+	if !o.connecting.CompareAndSwap(false, true) {
+		o.Logger.Log().Msg("already connecting")
+		return
+	}
+	defer o.connecting.Store(false)
+	o.Logger.Log().Msg("start connecting")
+	o.Client.Store(nil)
 
-func Wrapper[T any](ctx context.Context, o *Obs, f func() (T, error)) (T, error) {
-	var zero T
-	cnt := 5
-	for o.Client == nil {
-		<-time.After(time.Second)
-		if cnt--; cnt < 0 {
-			return zero, cantConnect
+	for {
+		if cli, err := goobs.New(o.Cfg.Server, goobs.WithPassword(o.Cfg.Password)); err == nil {
+			o.Client.Store(cli)
+			break
+		} else if ctx.Err() != nil {
+			return
+		} else {
+			o.Logger.Debug().Err(err).Msg("connection failed")
 		}
+		<-time.After(time.Second)
 	}
-	if ret, err := f(); err != nil {
-		o.Cancel()
-		o.Init(ctx)
-		return zero, err
-	} else {
-		return ret, nil
+
+	go func() {
+		o.Logger.Log().Msg("event stream tapped")
+		o.availabilytyNotification.Notify(true, struct{}{})
+		for e := range o.Client.Load().IncomingEvents {
+			o.eventStream.Notify(api.AllEvents, e)
+			if t := reflect.TypeOf(e); o.eventStream.Has(t) {
+				o.eventStream.Notify(t, e)
+			}
+		}
+		o.Logger.Log().Msg("event stream closed")
+		o.Client.Store(nil)
+		o.availabilytyNotification.Notify(false, struct{}{})
+	}()
+	return
+}
+
+func (o *Obs) disconnect() {
+	if o.Cli() != nil {
+		o.Client.Load().Disconnect()
+		o.Client.Store(nil)
 	}
+}
+
+func (o *Obs) Cli() *goobs.Client                            { return o.Client.Load() }
+func (o *Obs) EventStream() *SUBSCRIPTION[reflect.Type, any] { return o.eventStream }
+func (o *Obs) AvailabilityNotification() *SUBSCRIPTION[bool, struct{}] {
+	return o.availabilytyNotification
+}
+
+var NotConnected = errors.New("obs not connected")
+
+// Execute - in obs context
+func (o *Obs) Execute(f func(*goobs.Client) error) error {
+	for range 5 {
+		if o.Cli() != nil {
+			err := f(o.Cli())
+			if err != nil {
+				o.Client.Store(nil)
+			}
+			return err
+		}
+		<-time.After(time.Second)
+	}
+	return NotConnected
 }

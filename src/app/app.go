@@ -2,81 +2,46 @@ package app
 
 import (
 	"context"
-	"fmt"
 	"github.com/rs/zerolog"
 	"github.com/vany/controlrake/src/config"
-	"github.com/vany/controlrake/src/types"
-	"reflect"
-	"runtime"
-	"strings"
+	"github.com/vany/controlrake/src/httpserver"
+	httpserver_api "github.com/vany/controlrake/src/httpserver/api"
+	"github.com/vany/controlrake/src/obs"
+	obs_api "github.com/vany/controlrake/src/obs/api"
+	"github.com/vany/controlrake/src/obsbrowser"
+	obsbrowser_api "github.com/vany/controlrake/src/obsbrowser/api"
+	"github.com/vany/controlrake/src/qrcoder"
+	"github.com/vany/controlrake/src/widget"
+	widget_api "github.com/vany/controlrake/src/widget/api"
+	. "github.com/vany/pirog"
+	"os"
 )
 
-var Key = struct{}{}
-
-// container with all my goodies
+// App - Initialized system components
 type App struct {
-	Cfg        *config.Config
-	Log        *types.Logger
-	Widget     types.WidgetRegistry
-	Obs        types.Obs
-	ObsBrowser types.ObsBrowser
-	HTTP       types.HTTPServer
-	Youtube    types.Youtube
+	Config          *config.ConfigComponent    `injectable:"Config"`
+	Logger          *zerolog.Logger            `injectable:"Logger"`
+	QrCoder         *qrcoder.QrCoder           `injectable:"Qrcoder"`
+	ObsBrowser      obsbrowser_api.ObsBrowser  `injectable:"ObsBrowser"`
+	WidgetComponent widget_api.WidgetComponent `injectable:"WidgetComponent"`
+	Obs             obs_api.Obs                `injectable:"Obs"`
+	HTTPServer      httpserver_api.HTTPServer  `injectable:"HTTPServer"`
 }
 
-func PutToApp(ctx context.Context, obj any) context.Context {
-	c := FromContext(ctx)
-	if c == nil {
-		c = &App{}
-		ctx = context.WithValue(ctx, Key, c)
+func New(ctx context.Context) *App {
+	app := &App{
+		Config:          config.New(),
+		Logger:          REF(zerolog.New(os.Stdout).Level(TERNARY(DEBUG, zerolog.DebugLevel, zerolog.InfoLevel))),
+		HTTPServer:      httpserver.New(),
+		Obs:             obs.New(),
+		ObsBrowser:      obsbrowser.New(),
+		WidgetComponent: widget.NewComponent(),
+		QrCoder:         qrcoder.New(),
 	}
+	InjectComponents(app)
 
-	ft := reflect.TypeOf(c).Elem()
-	ot := reflect.TypeOf(obj)
-	for i := 0; i < ft.NumField(); i++ {
-		ftc := ft.Field(i).Type
-		if ftc.Kind() == reflect.Pointer {
-			ftc = ftc.Elem()
-		}
-		if ot.Elem().AssignableTo(ftc) || (ftc.Kind() == reflect.Interface && ot.Implements(ftc)) {
-			reflect.ValueOf(c).Elem().Field(i).Set(reflect.ValueOf(obj))
-		}
-	}
-	return ctx
-}
-
-// only on interface fields
-func (a *App) ExecuteInitStage(ctx context.Context, stage int) error {
-	v := reflect.ValueOf(a).Elem()
-	for i := 0; i < v.NumField(); i++ {
-		f := v.Field(i).Elem()
-		m := f.MethodByName(fmt.Sprintf("InitStage%d", stage))
-		if !m.IsValid() {
-			continue
-		}
-		ret := m.Call([]reflect.Value{reflect.ValueOf(ctx)})[0]
-		if !ret.IsNil() {
-			return ret.Interface().(error)
-		}
-	}
-	return nil
-}
-
-func FromContext(ctx context.Context) *App {
-	c := ctx.Value(Key) // or die
-	if c == nil {
+	if err := ExecuteOnAllFields(ctx, app, "Init"); err != nil {
 		return nil
-	} else {
-		return c.(*App)
 	}
-}
-
-// Logger for subsystem and function
-func (a *App) Logger() zerolog.Logger {
-	pc, _, _, _ := runtime.Caller(1)
-	fs := runtime.CallersFrames([]uintptr{pc})
-	fr, _ := fs.Next()
-	i := strings.LastIndexByte(fr.Function, '/')
-	l := a.Log.With().Str("Func", fr.Function[i+1:]).Logger()
-	return l
+	return app
 }

@@ -1,13 +1,12 @@
-package widget
+package impl
 
 import (
-	"bufio"
-	"context"
 	"github.com/mitchellh/mapstructure"
-	"github.com/vany/controlrake/src/app"
-	. "github.com/vany/pirog"
-	"os/exec"
-	"strings"
+	obsbrowser_api "github.com/vany/controlrake/src/obsbrowser/api"
+	"github.com/vany/controlrake/src/widget/api"
+	"github.com/vany/pirog"
+	"golang.org/x/net/context"
+	"html/template"
 )
 
 type ButtonArgs struct {
@@ -19,12 +18,15 @@ type ButtonArgs struct {
 	}
 }
 
+// Button - generic button that can invoke actions and show action progress
 type Button struct {
 	BaseWidget
 	Args ButtonArgs
+
+	ObsBrowser obsbrowser_api.ObsBrowser
 }
 
-var _ = MustSurvive(RegisterWidgetType(&Button{}, `
+var _ = RegisterWidgetType(&Button{}, `
 <button style="font-size: xx-large">{{.Caption}}</button>
 
 <script>
@@ -61,47 +63,44 @@ var _ = MustSurvive(RegisterWidgetType(&Button{}, `
 		
 	{{end}}
 	
-	function {{.Name}}_Click() {
-			self.bgColor = ""
-			
+	function {{ .RawName }}_Click() {
+			self.bgColor = ""		
 	}
 		
 </script>
-`))
+`)
 
-func (w *Button) Init(context.Context) error {
-	err := mapstructure.Decode(w.Config.Args, &w.Args)
-	return TERNARY(err == nil, nil, w.Errorf("cant read config %#v: %w", w.Config.Args, err))
+func (w *Button) Init(_ context.Context, c api.WidgetConstructor) error {
+	w.ObsBrowser = c.GetComponent("ObsBrowser").(obsbrowser_api.ObsBrowser)
+	err := mapstructure.Decode(w.WidgetConfig.Args, &w.Args)
+	return pirog.TERNARY(err == nil, nil, w.Errorf("cant read config %#v: %w", w.WidgetConfig.Args, err))
+
 }
 
-// TODO 🔴REFACTOR!!!!🔴  yes, we can!!!🟢
 func (w *Button) Dispatch(ctx context.Context, event string) error {
-	app := app.FromContext(ctx)
 	w.Log.Log().Str("event", event).Msg("Pressed")
 
-	if w.Args.Action == nil {
-		return w.Errorf(".Action is nil")
-	}
-
 	if w.Args.Action.PlaySound != "" {
-		sendObj := app.ObsBrowser.Send(ctx, "PlaySound|"+w.Args.Action.PlaySound)
+		req := w.ObsBrowser.ToWeb(ctx, "PlaySound|"+w.Args.Action.PlaySound)
+
 		go func() {
 			for {
-				select {
-				case msg := <-sendObj.Receive():
-					w.Log.Debug().Str("msg", msg).Msg("WS Got")
-					w.Send("progress|" + msg)
-				case <-sendObj.Done():
-					w.Log.Debug().Msg("WS Closed")
-					w.Send("done")
+				if msg, ok := pirog.RECV(ctx, req.RES); !ok {
 					return
-				case <-ctx.Done():
-					return
+				} else {
+					w.Log.Debug().Str("msg", msg).Msg("OBSWS response")
+					w.SendToWeb(ctx, "progress|"+msg)
 				}
 			}
 		}()
 	}
 
+	return nil
+}
+
+func (w *Button) RawName() template.JS { return template.JS(w.Name) }
+
+/*
 	if w.Args.Action.Html != "" {
 		sendObj := app.ObsBrowser.Send(ctx, "Html|"+w.Args.Action.Html)
 		go func() {
@@ -151,6 +150,4 @@ func (w *Button) Dispatch(ctx context.Context, event string) error {
 			w.Send("done")
 		}()
 	}
-
-	return nil
-}
+*/
