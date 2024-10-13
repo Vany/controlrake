@@ -6,51 +6,61 @@ import (
 	"context"
 	"fmt"
 	"github.com/google/uuid"
-	"github.com/vany/controlrake/src/app"
-	"github.com/vany/controlrake/src/types"
+	"github.com/rs/zerolog"
+	"github.com/vany/controlrake/src/obsbrowser/api"
+	"github.com/vany/pirog"
 	"strings"
 	"sync"
 	"time"
 )
 
 type Browser struct {
+	Logger *zerolog.Logger `inject:"Logger"`
+
 	Chan         chan string
 	Receivers    map[uuid.UUID]*SendObject
 	LastAccessed map[uuid.UUID]time.Time
 	Mu           sync.Mutex
 }
 
-func New(ctx context.Context) *Browser {
-	self := Browser{
+func New() *Browser {
+	return &Browser{
 		Chan:         make(chan string, 1),
 		Receivers:    make(map[uuid.UUID]*SendObject),
 		LastAccessed: make(map[uuid.UUID]time.Time),
 	}
+}
 
-	go func() {
+func (o *Browser) Init(ctx context.Context) error {
+	o.Logger = pirog.REF(o.Logger.With().Str("comp", "obsws").Logger())
+
+	go func() { // todo refactor this to something like request/response.
 		select {
 		case <-ctx.Done():
 			return
 		case now := <-time.Tick(30 * time.Second):
-			app.FromContext(ctx).Log.Debug().Msg("obs browser garbage collection")
+			o.Logger.Debug().Msg("obs browser garbage collection")
 			t := now.Add(-10 * time.Minute)
-			self.Mu.Lock()
-			for k, v := range self.LastAccessed {
+			o.Mu.Lock()
+			for k, v := range o.LastAccessed {
 				if v.Before(t) {
-					self.CloseObject(ctx, k)
+					o.CloseObject(ctx, k)
 				}
 			}
-			self.Mu.Unlock()
+			o.Mu.Unlock()
 		}
 	}()
-	return &self
+
+	return nil
 }
+
+func (o *Browser) Run(ctx context.Context) error  { return nil }
+func (o *Browser) Stop(ctx context.Context) error { return nil }
 
 func (o *Browser) SendChan() chan string { return o.Chan }
 
 // TODO  optimize cleaner with priority queue
-func (o *Browser) Send(ctx context.Context, msg string) types.ObsSendObject {
-	log := app.FromContext(ctx).Logger()
+func (o *Browser) Send(ctx context.Context, msg string) api.ObsSendObject {
 	uuid := uuid.New()
 	o.Chan <- uuid.String() + "|" + msg
 	ret := &SendObject{
@@ -62,7 +72,7 @@ func (o *Browser) Send(ctx context.Context, msg string) types.ObsSendObject {
 	o.LastAccessed[uuid] = time.Now()
 	o.Mu.Unlock()
 
-	log.Debug().Str("msg", msg).Msg("Sent")
+	o.Logger.Debug().Str("msg", msg).Msg("Sent")
 	return ret
 }
 
@@ -86,7 +96,7 @@ func (o *Browser) Dispatch(ctx context.Context, b string) error {
 }
 
 func (o *Browser) CloseObject(ctx context.Context, u uuid.UUID) {
-	app.FromContext(ctx).Log.Debug().Str("uuid", u.String()).Msg("removed")
+	o.Logger.Debug().Str("uuid", u.String()).Msg("removed")
 	so, ok := o.Receivers[u]
 	if ok {
 		close(so.DoneChan)

@@ -68,9 +68,3 @@ func (w *Container) Dispatch(ctx context.Context, b string) error {
 func (w *Container) Children() map[string]Widget {
 	return w.Map
 }
-
-//<table class="container" id="{{.Name}}" width="100%"><tr>
-//{{range $k, $v := .Map}}
-//<td>{{$buff := WriteBuffer -}} {{- $err := $v.RenderTo nil $buff -}} {{$buff.String}}</td>
-//{{end}}
-//</tr></table>

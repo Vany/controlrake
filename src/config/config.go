@@ -3,32 +3,33 @@ package config
 import (
 	"context"
 	"fmt"
+	"github.com/creasty/defaults"
 	"github.com/spf13/viper"
+	httpserver_api "github.com/vany/controlrake/src/httpserver/api"
+	obs_api "github.com/vany/controlrake/src/obs/api"
+	widget_api "github.com/vany/controlrake/src/widget/api"
 )
 
 type Config struct {
-	BindAddress string
-	StaticRoot  string
-	SoundRoot   string
-	Obs         map[string]any
-	Widget      map[string]any
+	HTTP   httpserver_api.Config
+	Obs    obs_api.Config
+	Widget widget_api.Config
 }
 
-func ReadConfig(ctx context.Context) (*Config, error) {
+func New() *Config {
+	return &Config{}
+}
+
+func (c *Config) Init(ctx context.Context) error {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(".")
-	if err := viper.ReadInConfig(); err != nil {
-		return nil, fmt.Errorf("can't viper.ReadInConfig(): %w", err)
+	if err := defaults.Set(c); err != nil {
+		return fmt.Errorf("can't set defaults: %w", err)
+	} else if err := viper.ReadInConfig(); err != nil {
+		return fmt.Errorf("can't viper.ReadInConfig(): %w", err)
+	} else if err := viper.Unmarshal(&c); err != nil {
+		return fmt.Errorf("can't viper.Unmarshal(&cfg): %w", err)
 	}
-	cfg := &Config{}
-	if err := viper.Unmarshal(&cfg); err != nil {
-		return nil, fmt.Errorf("can't viper.Unmarshal(&cfg): %w", err)
-	}
-
-	return cfg, nil
-}
-
-func (c *Config) InitStage1(ctx context.Context) error {
 	return nil
 }

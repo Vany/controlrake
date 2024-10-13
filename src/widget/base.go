@@ -5,9 +5,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/mitchellh/mapstructure"
 	"github.com/rs/zerolog"
-	app2 "github.com/vany/controlrake/src/app"
+	"github.com/vany/controlrake/src/widget/api"
 	. "github.com/vany/pirog"
 	"io"
 	"reflect"
@@ -37,18 +36,19 @@ func RegisterWidgetType(w Widget, tmplstring string) error {
 }
 
 func New(ctx context.Context, cfga any) Widget {
-	cfg := Config{}
-	app := app2.FromContext(ctx)
-	mapstructure.Decode(cfga, &cfg)
-	if t, ok := TypeRegistry[cfg.Type]; !ok {
-		panic("unknown widget type: " + cfg.Type)
-	} else {
-		w := reflect.New(t).Interface().(Widget)
-		w.Base().Config = cfg
-		w.Base().Widget = w
-		w.Base().Log = app.Log.With().Str("widget", cfg.Name).Logger()
-		return w
-	}
+	//cfg := Config{}
+	//app := app2.FromContext(ctx)
+	//mapstructure.Decode(cfga, &cfg)
+	//if t, ok := TypeRegistry[cfg.Type]; !ok {
+	//	panic("unknown widget type: " + cfg.Type)
+	//} else {
+	//	w := reflect.New(t).Interface().(Widget)
+	//	w.Base().Config = cfg
+	//	w.Base().Widget = w
+	//	w.Base().Log = app.Log.With().Str("widget", cfg.Name).Logger()
+	//	return w
+	//}
+	return nil
 }
 
 func (w *BaseWidget) InitStage1(ctx context.Context) error {
@@ -83,19 +83,12 @@ type Widget interface {
 	Children() map[string]Widget                      // get all children
 }
 
-type Config struct {
-	Name    string // Unique widget id
-	Type    string // Type of widget class
-	Caption string // Text to render in widget if it is a button or something like this
-	Style   string // css style for this widget only
-	Args    any    // Widget specific config
-}
-
 type BaseWidget struct {
-	Config
-	Widget Widget         // link to actual widget object
-	Chan   chan string    // channel to interact with visual representation
-	Log    zerolog.Logger // logger for specified widget
+	api.Config
+	Widget Widget // link to actual widget object
+	// TODO rename to sendtoweb or something
+	Chan chan string    // channel to interact with visual representation
+	Log  zerolog.Logger // logger for specified widget
 }
 
 func (w *BaseWidget) Init(ctx context.Context) error { return nil }

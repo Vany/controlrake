@@ -1,15 +1,5 @@
 package widget
 
-import (
-	"bufio"
-	"context"
-	"github.com/mitchellh/mapstructure"
-	"github.com/vany/controlrake/src/app"
-	. "github.com/vany/pirog"
-	"os/exec"
-	"strings"
-)
-
 type ButtonArgs struct {
 	Action *struct {
 		PlaySound   string
@@ -69,88 +59,88 @@ var _ = MustSurvive(RegisterWidgetType(&Button{}, `
 </script>
 `))
 
-func (w *Button) Init(context.Context) error {
-	err := mapstructure.Decode(w.Config.Args, &w.Args)
-	return TERNARY(err == nil, nil, w.Errorf("cant read config %#v: %w", w.Config.Args, err))
-}
-
-// TODO 🔴REFACTOR!!!!🔴  yes, we can!!!🟢
-func (w *Button) Dispatch(ctx context.Context, event string) error {
-	app := app.FromContext(ctx)
-	w.Log.Log().Str("event", event).Msg("Pressed")
-
-	if w.Args.Action == nil {
-		return w.Errorf(".Action is nil")
-	}
-
-	if w.Args.Action.PlaySound != "" {
-		sendObj := app.ObsBrowser.Send(ctx, "PlaySound|"+w.Args.Action.PlaySound)
-		go func() {
-			for {
-				select {
-				case msg := <-sendObj.Receive():
-					w.Log.Debug().Str("msg", msg).Msg("WS Got")
-					w.Send("progress|" + msg)
-				case <-sendObj.Done():
-					w.Log.Debug().Msg("WS Closed")
-					w.Send("done")
-					return
-				case <-ctx.Done():
-					return
-				}
-			}
-		}()
-	}
-
-	if w.Args.Action.Html != "" {
-		sendObj := app.ObsBrowser.Send(ctx, "Html|"+w.Args.Action.Html)
-		go func() {
-			for {
-				select {
-				case msg := <-sendObj.Receive():
-					w.Log.Debug().Str("msg", msg).Msg("WS Got")
-					w.Send("progress|" + msg)
-				case <-sendObj.Done():
-					w.Log.Debug().Msg("WS Closed")
-					w.Send("done")
-					return
-				case <-ctx.Done():
-					return
-				}
-			}
-		}()
-	}
-
-	if w.Args.Action.CommandLine != "" {
-
-		go func() {
-			args := strings.Split(w.Args.Action.CommandLine, " ")
-			cmd := exec.CommandContext(ctx, args[0], args[1:]...)
-			stdout, err := cmd.StdoutPipe()
-			if err != nil {
-				w.Send("cmderror|" + err.Error())
-				w.Log.Error().Err(err).Send()
-				return
-			}
-
-			if err := cmd.Start(); err != nil {
-				w.Send("cmderror|" + err.Error())
-				w.Log.Error().Err(err).Send()
-				return
-			}
-
-			scanner := bufio.NewScanner(stdout)
-			for scanner.Scan() {
-				w.Send("out|" + scanner.Text())
-			}
-
-			if err := cmd.Wait(); err != nil {
-				w.Send("cmderror|" + err.Error())
-				w.Log.Error().Err(err).Send()
-			}
-			w.Send("done")
-		}()
-	}
-
-	return nil
-}
+//func (w *Button) Init(context.Context) error {
+//	err := mapstructure.Decode(w.Config.Args, &w.Args)
+//	return TERNARY(err == nil, nil, w.Errorf("cant read config %#v: %w", w.Config.Args, err))
+//}
+//
+//// TODO 🔴REFACTOR!!!!🔴  yes, we can!!!🟢
+//func (w *Button) Dispatch(ctx context.Context, event string) error {
+//	app := app.FromContext(ctx)
+//	w.Log.Log().Str("event", event).Msg("Pressed")
+//
+//	if w.Args.Action == nil {
+//		return w.Errorf(".Action is nil")
+//	}
+//
+//	if w.Args.Action.PlaySound != "" {
+//		sendObj := app.ObsBrowser.Send(ctx, "PlaySound|"+w.Args.Action.PlaySound)
+//		go func() {
+//			for {
+//				select {
+//				case msg := <-sendObj.Receive():
+//					w.Log.Debug().Str("msg", msg).Msg("WS Got")
+//					w.Send("progress|" + msg)
+//				case <-sendObj.Done():
+//					w.Log.Debug().Msg("WS Closed")
+//					w.Send("done")
+//					return
+//				case <-ctx.Done():
+//					return
+//				}
+//			}
+//		}()
+//	}
+//
+//	if w.Args.Action.Html != "" {
+//		sendObj := app.ObsBrowser.Send(ctx, "Html|"+w.Args.Action.Html)
+//		go func() {
+//			for {
+//				select {
+//				case msg := <-sendObj.Receive():
+//					w.Log.Debug().Str("msg", msg).Msg("WS Got")
+//					w.Send("progress|" + msg)
+//				case <-sendObj.Done():
+//					w.Log.Debug().Msg("WS Closed")
+//					w.Send("done")
+//					return
+//				case <-ctx.Done():
+//					return
+//				}
+//			}
+//		}()
+//	}
+//
+//	if w.Args.Action.CommandLine != "" {
+//
+//		go func() {
+//			args := strings.Split(w.Args.Action.CommandLine, " ")
+//			cmd := exec.CommandContext(ctx, args[0], args[1:]...)
+//			stdout, err := cmd.StdoutPipe()
+//			if err != nil {
+//				w.Send("cmderror|" + err.Error())
+//				w.Log.Error().Err(err).Send()
+//				return
+//			}
+//
+//			if err := cmd.Start(); err != nil {
+//				w.Send("cmderror|" + err.Error())
+//				w.Log.Error().Err(err).Send()
+//				return
+//			}
+//
+//			scanner := bufio.NewScanner(stdout)
+//			for scanner.Scan() {
+//				w.Send("out|" + scanner.Text())
+//			}
+//
+//			if err := cmd.Wait(); err != nil {
+//				w.Send("cmderror|" + err.Error())
+//				w.Log.Error().Err(err).Send()
+//			}
+//			w.Send("done")
+//		}()
+//	}
+//
+//	return nil
+//}

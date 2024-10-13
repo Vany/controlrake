@@ -1,6 +1,7 @@
-BindAddress:  ":8888"   # localhost:333 :555 https://127.0.0.1
-StaticRoot: ./static
-SoundRoot: ./sounds
+HTTP:
+  Addr:  ":8888"   # localhost:333 :555 https://127.0.0.1
+  StaticRoot: ./static
+  SoundRoot: ./sounds
 
 Obs:
   Server: localhost:4455
