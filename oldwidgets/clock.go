@@ -1,20 +1,19 @@
-package widget
+package oldwidgets
 
 import (
 	"context"
+	"github.com/vany/controlrake/src/widget/impl"
 	"time"
 )
 
 type Clock struct {
-	BaseWidget
+	impl.BaseWidget
 	Format string
 }
 
-var _ = MustSurvive(RegisterWidgetType(&Clock{}, `
+var _ = MustSurvive(impl.RegisterWidgetType(&Clock{}, `
 	<b>🕰️</b>	
-	
 	<script>
-		console.log("I'm here")
 		let self = document.getElementById("{{.Name}}")
 		self.onWSEvent = function (msg) {
 			self.getElementsByTagName("b")[0].innerHTML = msg
@@ -23,21 +22,17 @@ var _ = MustSurvive(RegisterWidgetType(&Clock{}, `
 `))
 
 func (w *Clock) Init(ctx context.Context) error {
-	done := ctx.Done()
 	if s, ok := w.Args.(string); !ok {
 		return w.Errorf("can's read args: %v", w.Args)
 	} else {
 		w.Format = s
 	}
 	go func() {
-	STOP:
 		for {
-			select {
-			case t := <-time.Tick(time.Second):
-				w.Send(t.Format(w.Format))
-			case <-done:
+			w.Send((<-time.Tick(time.Second)).Format(w.Format))
+			if ctx.Err() != nil {
 				w.Log.Info().Msg("Clock shut down")
-				break STOP
+				break
 			}
 		}
 	}()

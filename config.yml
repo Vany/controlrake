@@ -5,122 +5,29 @@ HTTP:
 
 Obs:
   Server: localhost:4455
-  Password: DKTVCJDxSMeEkPLy
+  Password: 9MewIyYTkyouU9LB
 
 Widget:
-  - Name: C
+  Root:
+    Name: Main
     Type: Container
-    Style: "height: 100%"
     Args:
-      - Name: Buttons
-        Type: Container
-        Style: "display: flex; flex-wrap: wrap;"
-        Args:
-        - Name: Applause
-          Type: Button
-          Caption: 👏
-          Args:
-            Action:
-              PlaySound: Applause.mp3
+      - Name: "1"
+        Type: Label
+        Caption: ‼ 😎‼️
 
-        - Name: cri
-          Type: Button
-          Caption: 🦟
-          Args:
-            Action:
-              PlaySound: cri.mp3
-
-        - Name: crickets
-          Type: Button
-          Caption: 🦟🦟
-          Args:
-            Action:
-              PlaySound: crickets.mp3
-
-        - Name: kidsyes
-          Type: Button
-          Caption: 👶
-          Args:
-            Action:
-              PlaySound: kids_yes.mp3
-
-        - Name: laughting
-          Type: Button
-          Caption: 🤣
-          Args:
-            Action:
-              PlaySound: Laughing.mp3
-
-        - Name: mario
-          Type: Button
-          Caption: ⛑️
-          Args:
-            Action:
-              PlaySound: mario.mp3
-
-        - Name: xfiles
-          Type: Button
-          Caption: 👽
-          Args:
-            Action:
-              PlaySound: xfiles.mp3
-
-        - Name: ObsHtmlMario
-          Type: Button
-          Caption: ⛑
-          Args:
-            Action:
-              PlaySound: mario.mp3
-
-        - Name: ObsRecord
-          Type: ObsRecord
-
-        - Name: ObsStream
-          Type: ObsStream
-
-        - Name: Scenes
-          Type: Scenes
-
-        - Name: BioAfk
-          Type: Button
-          Caption: 🚽️
-          Args:
-            Action:
-              Html: <img align="center" width="100%" height="90%" src="/static/obs/6666.gif"><br><div class="wrapper"><span id="timerspan">60</span></div>
-
-        - Name: LongBioAfk
-          Type: Button
-          Caption: 🚽🚽
-          Args:
-            Action:
-              Html: <img align="center" src="/static/obs/6666.gif"><br><span id="timerspan">600</span>
-
-
-        - Name: StopAnimationTimer
-          Type: Button
-          Caption: 🛑
-          Args:
-            Action:
-              Html: <span style="display:none" id="timerspan">0</span>
-
-        - Name: FreezeScreen
-          Type: Button
-          Caption: 🥶
-          Args:
-            Action:
-              Html: <font size="8196">🥶</font> <span style="display:none" id="timerspan">15</span>
-
-        - Name: ls
-          Type: Button
-          Caption: 🧟
-          Args:
-            Action:
-              CommandLine: bash -c ls
-
-
-      - Name: Chats
+      - Name: "2"
         Type: Container
         Args:
+        - Name: "3"
+          Type: Label
+          Caption: 3 😎2️
 
-        - Name: Youtube
-          Type: Youtube
+        - Name: "4"
+          Type: Label
+          Caption: 4 😎2️
+
+        - Name: "5"
+          Type: Label
+          Caption: 5 😎2️
+

@@ -1,10 +1,14 @@
-package widget
+package oldwidgets
+
+import (
+	"github.com/vany/controlrake/src/widget/impl"
+)
 
 type ObsStream struct {
-	BaseWidget
+	impl.BaseWidget
 }
 
-var _ = MustSurvive(RegisterWidgetType(&ObsStream{}, `
+var _ = MustSurvive(impl.RegisterWidgetType(&ObsStream{}, `
 <div style="display: inline-flex">
 	<span></span>
 	<span></span>

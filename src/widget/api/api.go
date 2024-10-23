@@ -6,6 +6,10 @@ import (
 )
 
 type Config struct {
+	Root WidgetConfig
+}
+
+type WidgetConfig struct {
 	Name    string // Unique widget id
 	Type    string // Type of widget class
 	Caption string // Text to render in widget if it is a button or something like this
@@ -13,8 +17,18 @@ type Config struct {
 	Args    any    // Widget specific config
 }
 
-type WidgetRegistry interface {
-	Dispatch(ctx context.Context, b string) error
-	SendChan() chan string
-	RenderTo(ctx context.Context, w io.Writer) error
+type WidgetComponent interface {
+	RenderTo(ctx context.Context, arg string, w io.Writer) error
+}
+
+type Widget interface {
+	Init(ctx context.Context, c WidgetConstructor) error          // init widget with config in it's base
+	Dispatch(ctx context.Context, event string) error             // consume one event from Websocket
+	RenderTo(ctx context.Context, arg string, wr io.Writer) error // render visual representation
+	RenderFuncs() map[string]any                                  // Additional functions for template
+	Errorf(f string, args ...any) error
+}
+
+type WidgetConstructor interface {
+	NewWidget(ctx context.Context, cfg *WidgetConfig) (Widget, error)
 }

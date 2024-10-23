@@ -1,10 +1,14 @@
-package widget
+package oldwidgets
+
+import (
+	"github.com/vany/controlrake/src/widget/impl"
+)
 
 type Scenes struct {
-	BaseWidget
+	impl.BaseWidget
 }
 
-var _ = MustSurvive(RegisterWidgetType(&Scenes{}, `
+var _ = MustSurvive(impl.RegisterWidgetType(&Scenes{}, `
 <select style="font-size: xx-large"></select>
 <script>
 	let self = document.getElementById("{{.Name}}");

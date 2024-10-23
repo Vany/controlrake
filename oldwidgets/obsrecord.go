@@ -1,10 +1,14 @@
-package widget
+package oldwidgets
+
+import (
+	"github.com/vany/controlrake/src/widget/impl"
+)
 
 type ObsRecord struct {
-	BaseWidget
+	impl.BaseWidget
 }
 
-var _ = MustSurvive(RegisterWidgetType(&ObsRecord{}, `
+var _ = MustSurvive(impl.RegisterWidgetType(&ObsRecord{}, `
 <div style="display: inline-flex; font-size: xx-large">
 
 	<button onclick="Send(this, 'rec')">⏺️</button>

@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-type Browser struct {
+type ObsBrowser struct {
 	Logger *zerolog.Logger `inject:"Logger"`
 
 	Chan         chan string
@@ -23,15 +23,15 @@ type Browser struct {
 	Mu           sync.Mutex
 }
 
-func New() *Browser {
-	return &Browser{
+func New() *ObsBrowser {
+	return &ObsBrowser{
 		Chan:         make(chan string, 1),
 		Receivers:    make(map[uuid.UUID]*SendObject),
 		LastAccessed: make(map[uuid.UUID]time.Time),
 	}
 }
 
-func (o *Browser) Init(ctx context.Context) error {
+func (o *ObsBrowser) Init(ctx context.Context) error {
 	o.Logger = pirog.REF(o.Logger.With().Str("comp", "obsws").Logger())
 
 	go func() { // todo refactor this to something like request/response.
@@ -54,13 +54,13 @@ func (o *Browser) Init(ctx context.Context) error {
 	return nil
 }
 
-func (o *Browser) Run(ctx context.Context) error  { return nil }
-func (o *Browser) Stop(ctx context.Context) error { return nil }
+func (o *ObsBrowser) Run(ctx context.Context) error  { return nil }
+func (o *ObsBrowser) Stop(ctx context.Context) error { return nil }
 
-func (o *Browser) SendChan() chan string { return o.Chan }
+func (o *ObsBrowser) SendChan() chan string { return o.Chan }
 
 // TODO  optimize cleaner with priority queue
-func (o *Browser) Send(ctx context.Context, msg string) api.ObsSendObject {
+func (o *ObsBrowser) Send(ctx context.Context, msg string) api.ObsSendObject {
 	uuid := uuid.New()
 	o.Chan <- uuid.String() + "|" + msg
 	ret := &SendObject{
@@ -76,7 +76,7 @@ func (o *Browser) Send(ctx context.Context, msg string) api.ObsSendObject {
 	return ret
 }
 
-func (o *Browser) Dispatch(ctx context.Context, b string) error {
+func (o *ObsBrowser) Dispatch(ctx context.Context, b string) error {
 	parts := strings.SplitN(b, "|", 2)
 	if uuid, err := uuid.Parse(parts[0]); err != nil {
 		return fmt.Errorf("parse uuid %s: %w", parts[0], err)
@@ -95,7 +95,7 @@ func (o *Browser) Dispatch(ctx context.Context, b string) error {
 	return nil
 }
 
-func (o *Browser) CloseObject(ctx context.Context, u uuid.UUID) {
+func (o *ObsBrowser) CloseObject(ctx context.Context, u uuid.UUID) {
 	o.Logger.Debug().Str("uuid", u.String()).Msg("removed")
 	so, ok := o.Receivers[u]
 	if ok {

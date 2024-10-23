@@ -12,16 +12,14 @@ import (
 )
 
 func main() {
-
-	ctx, cf := signal.NotifyContext(context.Background(), os.Interrupt)
-	defer cf()
+	ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt)
 
 	a := app.New(ctx)
+	if a == nil {
+		os.Exit(0)
+	}
+
 	ExecuteOnAllFields(ctx, a, "Run")
-
-	a.QrCoder.DrawIps()
-
 	<-ctx.Done()
 	ExecuteOnAllFields(ctx, a, "Stop")
-
 }

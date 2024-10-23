@@ -1,6 +1,7 @@
 package qrcoder
 
 import (
+	"context"
 	"fmt"
 	"github.com/mdp/qrterminal/v3"
 	httpserver_api "github.com/vany/controlrake/src/httpserver/api"
@@ -13,13 +14,14 @@ import (
 // QrCoder - draw where to connect on app start.
 type QrCoder struct {
 	HTTPServer httpserver_api.HTTPServer `inject:"HTTPServer"`
+	// later, draw qrcode in//	ObsBrowser obsbrowser_api.ObsBrowser `inject:"ObsBrowser"`
 }
 
 func New() *QrCoder { return new(QrCoder) }
 
 var v4Re = regexp.MustCompile(`^\d+\.\d+\.\d+\.\d+`)
 
-func (q *QrCoder) DrawIps() {
+func (q *QrCoder) Run(ctx context.Context) error {
 	ifs := MUST2(net.Interfaces())
 
 	ifs = GREP(ifs, func(i net.Interface) bool {
@@ -44,4 +46,5 @@ func (q *QrCoder) DrawIps() {
 		fmt.Println(" => " + conn)
 		qrterminal.Generate(conn, qrterminal.M, os.Stdout)
 	}
+	return nil
 }
