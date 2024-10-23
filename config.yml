@@ -13,21 +13,23 @@ Widget:
     Type: Container
     Args:
       - Name: "1"
-        Type: Label
+        Type: Container
         Caption: ‼ 😎‼️
 
-      - Name: "2"
+      - Name: C2
         Type: Container
         Args:
-        - Name: "3"
+        - Name: L3
           Type: Label
           Caption: 3 😎2️
 
-        - Name: "4"
-          Type: Label
-          Caption: 4 😎2️
+        - Name: B4
+          Type: Button
+          Caption: 4 😎2
 
-        - Name: "5"
-          Type: Label
-          Caption: 5 😎2️
+        - Name: Clock
+          Type: Clock
+
+        - Name: Obss
+          Type: ObsStream
 

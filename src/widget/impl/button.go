@@ -1,12 +1,9 @@
-package oldwidgets
+package impl
 
 import (
-	"bufio"
-	"github.com/mitchellh/mapstructure"
-	"github.com/vany/controlrake/src/widget/impl"
+	"github.com/vany/controlrake/src/widget/api"
 	"golang.org/x/net/context"
-	"os/exec"
-	"strings"
+	"html/template"
 )
 
 type ButtonArgs struct {
@@ -19,11 +16,11 @@ type ButtonArgs struct {
 }
 
 type Button struct {
-	impl.BaseWidget
+	BaseWidget
 	Args ButtonArgs
 }
 
-var _ = impl.RegisterWidgetType(&Button{}, `
+var _ = RegisterWidgetType(&Button{}, `
 <button style="font-size: xx-large">{{.Caption}}</button>
 
 <script>
@@ -60,27 +57,28 @@ var _ = impl.RegisterWidgetType(&Button{}, `
 		
 	{{end}}
 	
-	function {{.Name}}_Click() {
-			self.bgColor = ""
-			
+	function {{ .RawName }}_Click() {
+			self.bgColor = ""		
 	}
 		
 </script>
 `)
 
-func (w *Button) Init(context.Context) error {
-	err := mapstructure.Decode(w.Config.Args, &w.Args)
-	return TERNARY(err == nil, nil, w.Errorf("cant read config %#v: %w", w.Config.Args, err))
+func (w *Button) Init(_ context.Context, _ api.WidgetConstructor) error {
+	//err := mapstructure.Decode(w.WidgetConfig.Args, &w.Args)
+	//return pirog.TERNARY(err == nil, nil, w.Errorf("cant read config %#v: %w", w.WidgetConfig.Args, err))
+	return nil
 }
 
-// // TODO 🔴REFACTOR!!!!🔴  yes, we can!!!🟢
 func (w *Button) Dispatch(ctx context.Context, event string) error {
-	app := app.FromContext(ctx)
 	w.Log.Log().Str("event", event).Msg("Pressed")
+	w.SendToWeb(ctx, "progress|100")
+	return nil
+}
 
-	if w.Args.Action == nil {
-		return w.Errorf(".Action is nil")
-	}
+func (w *Button) RawName() template.JS { return template.JS(w.Name) }
+
+/*
 
 	if w.Args.Action.PlaySound != "" {
 		sendObj := app.ObsBrowser.Send(ctx, "PlaySound|"+w.Args.Action.PlaySound)
@@ -151,5 +149,4 @@ func (w *Button) Dispatch(ctx context.Context, event string) error {
 		}()
 	}
 
-	return nil
-}
+*/

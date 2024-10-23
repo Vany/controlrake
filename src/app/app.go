@@ -17,9 +17,7 @@ import (
 	"os"
 )
 
-var Key = struct{}{}
-
-// container with all my goodies
+// App - Initialized system components
 type App struct {
 	Config          *config.ConfigComponent    `injectable:"Config"`
 	Logger          *zerolog.Logger            `injectable:"Logger"`

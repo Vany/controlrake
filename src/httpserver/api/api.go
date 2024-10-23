@@ -1,6 +1,10 @@
-package httpserver_api
+package api
 
-import "net/http"
+import (
+	"golang.org/x/net/context"
+	"io"
+	"net/http"
+)
 
 type Config struct {
 	Addr       string
@@ -11,4 +15,15 @@ type Config struct {
 type HTTPServer interface {
 	GetBaseUrl(host string) string // get base url for serving on host
 	RegisterHandler(path string, handler http.Handler)
+}
+
+// Comunicativo - can communicate with websocket
+type Comunicativo interface {
+	WebIngest(ctx context.Context, data string) error
+	WebSpittoon() chan string
+}
+
+type Widget interface {
+	Comunicativo
+	RenderTo(ctx context.Context, arg string, w io.Writer) error
 }

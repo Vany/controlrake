@@ -17,9 +17,7 @@ type WidgetConfig struct {
 	Args    any    // Widget specific config
 }
 
-type WidgetComponent interface {
-	RenderTo(ctx context.Context, arg string, w io.Writer) error
-}
+type WidgetComponent interface{}
 
 type Widget interface {
 	Init(ctx context.Context, c WidgetConstructor) error          // init widget with config in it's base
@@ -31,4 +29,5 @@ type Widget interface {
 
 type WidgetConstructor interface {
 	NewWidget(ctx context.Context, cfg *WidgetConfig) (Widget, error)
+	GetComponent(name string) any
 }

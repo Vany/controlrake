@@ -3,25 +3,25 @@ package httpserver
 import (
 	"context"
 	"errors"
+	"io"
+	"net"
+	"net/http"
+	"strings"
+
 	"github.com/rs/zerolog"
 	"github.com/vany/controlrake/src/config"
 	"github.com/vany/controlrake/src/httpserver/api"
 	obsbrowser_api "github.com/vany/controlrake/src/obsbrowser/api"
-	widget_api "github.com/vany/controlrake/src/widget/api"
 	. "github.com/vany/pirog"
-	"net"
-	"net/http"
-	"strings"
+	"golang.org/x/net/websocket"
 )
 
-const SERVER = "SERVER"
-
 type HTTPServer struct {
-	Cfg             *httpserver_api.Config
-	Config          *config.ConfigComponent    `inject:"Config"`
-	Logger          *zerolog.Logger            `inject:"Logger"`
-	ObsBrowser      obsbrowser_api.ObsBrowser  `inject:"ObsBrowser"`
-	WidgetComponent widget_api.WidgetComponent `inject:"WidgetComponent"`
+	Cfg             *api.Config
+	Config          *config.ConfigComponent   `inject:"Config"`
+	Logger          *zerolog.Logger           `inject:"Logger"`
+	ObsBrowser      obsbrowser_api.ObsBrowser `inject:"ObsBrowser"`
+	WidgetComponent api.Widget                `inject:"WidgetComponent"`
 
 	Server             *http.Server
 	HandlersToRegister map[string]http.Handler
@@ -35,7 +35,6 @@ func New() *HTTPServer {
 
 func (s *HTTPServer) Init(ctx context.Context) error {
 	s.Cfg = &s.Config.HTTP
-	ctx = context.WithValue(ctx, SERVER, s)
 	s.Logger = REF(s.Logger.With().Str("comp", "HTTP").Logger())
 	s.Server = &http.Server{
 		Addr:        s.Cfg.Addr,
@@ -102,7 +101,7 @@ func (s *HTTPServer) Mux(ctx context.Context) http.Handler {
 	const widgets = "/widgets/"
 	mux.Handle(widgets, http.StripPrefix(widgets, RenderWidgets{s}))
 
-	///	mux.Handle("/ws", websocket.Handler(CreateWsHandleFunc(ctx, s.Widgets)))
+	mux.Handle("/ws", s.CreateWsHandleFunc(ctx, s.WidgetComponent))
 	/// mux.Handle("/wsobs", websocket.Handler(CreateWsHandleFunc(ctx, s.ObsBrowser)))
 
 	for path, handler := range s.HandlersToRegister {
@@ -131,63 +130,60 @@ func (h *LoggingHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.Logger.Info().Str("url", r.URL.String()).Send()
 }
 
-//func CreateWsHandleFunc(ctx context.Context, subsystem WsSubsystem) func(conn *websocket.Conn) {
-//	cpc := FANOUT(subsystem.SendChan())
-//	return func(ws *websocket.Conn) {
-//		defer ws.Close()
-//		ctx := ws.Request().Context()
-//		s := ctx.Value(SERVER).(*HTTPServer)
-//		log := s.Logger
-//		log.Debug().Str("url", ws.Request().URL.String()).Msg("I'm in ws handler")
-//		wsctx, cf := context.WithCancel(ctx)
-//		defer cf()
-//
-//		send, senddetroy := cpc()
-//		defer senddetroy()
-//
-//		go func() {
-//			for {
-//				select {
-//				case msg := <-send: // widgets.SendChan
-//					if fw, err := ws.NewFrameWriter(websocket.TextFrame); err != nil {
-//						log.Error().Err(err).Msg("Can't create new websocket frame")
-//					} else {
-//						fw.Write([]byte(msg))
-//					}
-//				case <-wsctx.Done():
-//					return
-//				}
-//			}
-//		}()
-//
-//		for {
-//			f, err := ws.NewFrameReader()
-//			if err != nil {
-//				log.Error().Err(err).Msg("websocket failed")
-//				break
-//			}
-//
-//			if f.PayloadType() == websocket.CloseFrame {
-//				log.Debug().Msg("Client wants to quit")
-//				break
-//			}
-//
-//			log.Debug().Interface("payload", f.PayloadType()).Msg("New WS frame")
-//
-//			b, err := io.ReadAll(f)
-//
-//			if err != nil {
-//				log.Error().Err(err).Msg("websocket frame failed")
-//			} else {
-//
-//				if err := subsystem.Dispatch(ctx, string(b)); err != nil {
-//					log.Error().Err(err).Msg("Receiver failed")
-//				} else {
-//					log.Info().Bytes("payload", b).Msg("websocket frame arrived")
-//				}
-//			}
-//		}
-//		log.Debug().Msg("websocket close")
-//
-//	}
-//}
+func (s *HTTPServer) CreateWsHandleFunc(ctx context.Context, subsystem api.Comunicativo) websocket.Handler {
+	localChaner := FANOUT(subsystem.WebSpittoon())
+	return func(ws *websocket.Conn) {
+		defer ws.Close()
+		log := s.Logger
+		log.Debug().Str("url", ws.Request().URL.String()).Msg("I'm in ws handler")
+		wsctx, cf := context.WithCancel(ctx)
+		defer cf()
+
+		send, senddetroy := localChaner()
+		defer senddetroy()
+
+		go func() {
+			for {
+				select {
+				case msg := <-send: // widgets.Spittoon tee
+					if fw, err := ws.NewFrameWriter(websocket.TextFrame); err != nil {
+						log.Error().Err(err).Msg("Can't create new websocket frame")
+					} else {
+						fw.Write([]byte(msg))
+					}
+				case <-wsctx.Done():
+					log.Debug().Msg("WS Service terminated")
+
+					return
+				}
+			}
+		}()
+
+		for {
+			f, err := ws.NewFrameReader()
+			if err != nil {
+				log.Error().Err(err).Msg("websocket failed")
+				break
+			}
+
+			if f.PayloadType() == websocket.CloseFrame {
+				log.Debug().Msg("Client wants to quit")
+				break
+			}
+
+			log.Debug().Interface("payload", f.PayloadType()).Msg("New WS frame")
+
+			if b, err := io.ReadAll(f); err != nil {
+				log.Error().Err(err).Msg("websocket frame failed")
+
+			} else if err := subsystem.WebIngest(ctx, string(b)); err != nil {
+				log.Error().Err(err).Msg("Receiver failed")
+
+			} else {
+				log.Debug().Msg("websocket frame served")
+			}
+
+		}
+		log.Debug().Msg("websocket close")
+	}
+}

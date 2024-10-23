@@ -2,6 +2,7 @@ package obs
 
 import (
 	"context"
+	"errors"
 	"github.com/andreykaipov/goobs"
 	"github.com/rs/zerolog"
 	"github.com/vany/controlrake/src/config"
@@ -20,9 +21,10 @@ type Obs struct {
 	Config *config.ConfigComponent `inject:"Config"`
 	Logger *zerolog.Logger         `inject:"Logger"`
 
-	Cfg    *obs_api.Config
-	Client *goobs.Client
-	CliMu  sync.Mutex
+	Cfg        *obs_api.Config
+	Client     *goobs.Client
+	ClientMu   sync.Mutex
+	ClientDead chan struct{}
 }
 
 func New() *Obs {
@@ -32,9 +34,21 @@ func New() *Obs {
 func (o *Obs) Init(ctx context.Context) error {
 	o.Cfg = &o.Config.Obs
 	o.Logger = REF(o.Logger.With().Str("comp", "obs").Logger())
-	o.Logger.Info().Msg("initializing")
-	o.connect(ctx)
-	o.Logger.Info().Msg("Connected")
+
+	go func() {
+		for {
+			if o.Client == nil {
+				o.connect(ctx)
+			}
+			select {
+			case <-ctx.Done():
+				return
+			case <-o.ClientDead:
+				o.connect(ctx)
+			}
+		}
+	}()
+
 	return nil
 }
 
@@ -45,25 +59,38 @@ func (o *Obs) Stop(ctx context.Context) error {
 	return nil
 }
 
+var NotConnected = errors.New("obs not connected")
+
+// Execute
+func (o *Obs) Execute(f func(*goobs.Client) error) error {
+	o.ClientMu.Lock()
+	defer o.ClientMu.Unlock()
+	for range 5 {
+		if o.Client != nil {
+			break
+		}
+		<-time.After(time.Second)
+	}
+	if o.Client == nil {
+		o.ClientDead <- struct{}{}
+		return NotConnected
+	}
+
+	err := f(o.Client)
+	if err != nil {
+		o.ClientDead <- struct{}{}
+	}
+	return err
+}
+
 func (o *Obs) Cli() *goobs.Client {
 	return o.Client
 }
 
-// todo - use pirog.request here.
-// func Wrapper[T any](o *Obs, f func() (T, error)) (T, error) {
-//var zero T
-//if ret, err := f(); err != nil {
-//	o.connect()
-//	return zero, err
-//} else {
-//	return ret, nil
-//}
-// }
-
 func (o *Obs) connect(ctx context.Context) (err error) {
-	o.CliMu.Lock()
-	defer o.CliMu.Unlock()
-	o.disconnect()
+	o.Client = nil
+	o.ClientMu.Lock()
+	defer o.ClientMu.Unlock()
 	pause := time.Microsecond
 	for {
 		<-time.After(pause)
@@ -88,6 +115,8 @@ func (o *Obs) connect(ctx context.Context) (err error) {
 
 func (o *Obs) disconnect() {
 	if o.Client != nil {
+		o.ClientMu.Lock()
+		defer o.ClientMu.Unlock()
 		o.Client.Disconnect()
 		o.Client = nil
 	}

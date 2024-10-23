@@ -8,5 +8,6 @@ type Config struct {
 }
 
 type Obs interface {
-	Cli() *goobs.Client // get raw client
+	Cli() *goobs.Client                        // get raw client
+	Execute(f func(*goobs.Client) error) error // execute in server context
 }

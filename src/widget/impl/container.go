@@ -61,20 +61,22 @@ func (w *Container) Init(ctx context.Context, c api.WidgetConstructor) error {
 	return nil
 }
 
-//func (w *Container) Dispatch(ctx context.Context, b string) error {
-//	parts := strings.SplitN(b, "|", 2)
-//	if parts[0] == w.Name {
-//		parts = strings.SplitN(parts[1], "|", 2)
-//	}
-//
-//	name := parts[0]
-//	if win, ok := w.Map[name]; !ok {
-//		return w.Base().Errorf("widget %s not found", name)
-//	} else if err := win.Dispatch(ctx, parts[1]); err != nil {
-//		return win.(Baser).Base().Errorf("can't dispatch '%s': %w", parts[1], err)
-//	}
-//	return nil
-//}
+type Baser interface{ Base() *BaseWidget }
+
+func (w *Container) Dispatch(ctx context.Context, b string) error {
+	parts := strings.SplitN(b, "|", 2)
+	if parts[0] == w.Name {
+		parts = strings.SplitN(parts[1], "|", 2)
+	}
+
+	name := parts[0]
+	if win, ok := w.Map[name]; !ok {
+		return w.Base().Errorf("widget %s not found", name)
+	} else if err := win.Dispatch(ctx, parts[1]); err != nil {
+		return win.(Baser).Base().Errorf("can't dispatch '%s': %w", parts[1], err)
+	}
+	return nil
+}
 
 func (w *Container) RenderChildren(ctx context.Context, arg string) template.HTML {
 	buff := bytes.NewBuffer(make([]byte, 0, 8192))

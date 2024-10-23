@@ -3,7 +3,7 @@
 var WS = {};
 
 
-function ConnectWebsocket(handler) {
+function ConnectWebsocket(handler, callback) {
     let addr = "ws://" + location.host + "/" + handler;
     WS = new WebSocket(addr);
     console.log("Connecting: " + handler)
@@ -11,14 +11,15 @@ function ConnectWebsocket(handler) {
 
     WS.onopen = () => {
         console.log("Connected to " + handler)
+        callback()
         WS.onclose = () => {
-            setTimeout(() => ConnectWebsocket(handler), 1000);
+            setTimeout(() => ConnectWebsocket(handler, callback), 1000);
         };
         WS.onerror = null;
     };
 
     WS.onerror = (ev) => {
-        setTimeout(() => ConnectWebsocket(handler), 1000);
+        setTimeout(() => ConnectWebsocket(handler,callback), 1000);
     };
 }
 
