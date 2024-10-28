@@ -12,35 +12,28 @@ Widget:
     Name: Main
     Type: Container
     Args:
-      - Name: C1
-        Type: Container
+      - Name: Sc
+        Type: ObsScenes
+
+      - Name: CamInputs
+        Type: ObsInputs
         Args:
-          - Name: Sc
-            Type: Scenes
+          InputName: CAM
+          Property: device_name
+          List:
+            - FaceTime HD Camera
+            - VI Camera
+            - C922 Pro Stream Webcam
 
-      - Name: C2
-        Type: Container
+      - Name: Applause
+        Type: Button
+        Caption: 👏
         Args:
-        - Name: L3
-          Type: Label
-          Caption: 3 😎2️
+          Action:
+            PlaySound: Applause.mp3
 
-#        - Name: B4
-#          Type: Button
-#          Caption: 4 😎2
+      - Name: OR
+        Type: ObsRecord
 
-#        - Name: Clock
-#          Type: Clock
-
-#        - Name: OBSS
-#          Type: ObsStream
-
-#        - Name: OBQR
-#          type: ObsRecord
-
-        - Name: Applause
-          Type: Button
-          Caption: 👏
-          Args:
-            Action:
-              PlaySound: Applause.mp3
+      - Name: OS
+        Type: ObsStream

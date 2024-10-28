@@ -3,23 +3,29 @@ package impl
 import (
 	"context"
 	"fmt"
-	"strings"
-
 	"github.com/andreykaipov/goobs"
-	"github.com/andreykaipov/goobs/api/requests/scenes"
+	"github.com/andreykaipov/goobs/api/requests/inputs"
 	"github.com/mitchellh/mapstructure"
-	"github.com/vany/pirog"
-
 	obs_api "github.com/vany/controlrake/src/obs/api"
 	"github.com/vany/controlrake/src/widget/api"
+	"github.com/vany/pirog"
+	"strings"
 )
 
-type Scenes struct {
-	BaseWidget
-	Obs obs_api.Obs
+type ObsInputsArgs struct {
+	InputName string
+	Property  string
+	List      []string
 }
 
-var _ = RegisterWidgetType(&Scenes{}, `
+// ObsInputs - switch config input device of specified capturer
+type ObsInputs struct {
+	BaseWidget
+	Args ObsInputsArgs
+	Obs  obs_api.Obs
+}
+
+var _ = RegisterWidgetType(&ObsInputs{}, `
 <select style="font-size: xx-large"></select>
 <script>
 	let self = document.getElementById("{{.Name}}");
@@ -29,7 +35,7 @@ var _ = RegisterWidgetType(&Scenes{}, `
 	self.onWSEvent = function (msg) {
 		const inf = JSON.parse(msg);	
 		if ('enabled' in inf) {		
-			console.log("OBS", inf.enabled);
+			console.log("OBSInputs", inf.enabled);
 			if (inf.enabled) {
 				sel.disabled = false;
 				Send(self,"load");
@@ -40,10 +46,10 @@ var _ = RegisterWidgetType(&Scenes{}, `
 		}
 		
 		sel.innerHTML = "";
-		inf.scenes.forEach(s => {
-			let selected = (inf.currentProgramSceneName == s.sceneName ? "selected" : ""); 
-			let xxx = '<option ' + selected + '>' + s.sceneName + "</option>";
-			sel.innerHTML += xxx; 		
+		inf.List.forEach(s => {
+			let selected = (inf.Selected == s ? "selected" : ""); 
+			sel.innerHTML +=  '<option ' + selected + '>' + s + "</option>";
+			; 		
 		});
 		sel.style.backgroundColor = "white"
 	};
@@ -56,7 +62,7 @@ var _ = RegisterWidgetType(&Scenes{}, `
 </script>
 `)
 
-func (w *Scenes) Init(ctx context.Context, c api.WidgetConstructor) error {
+func (w *ObsInputs) Init(ctx context.Context, c api.WidgetConstructor) error {
 	w.Obs = c.GetComponent("Obs").(obs_api.Obs)
 	if err := mapstructure.Decode(w.WidgetConfig.Args, &w.Args); err != nil {
 		return w.Errorf("cant read config %#v: %w", w.WidgetConfig.Args, err)
@@ -65,15 +71,13 @@ func (w *Scenes) Init(ctx context.Context, c api.WidgetConstructor) error {
 	go func() {
 		on := w.Obs.AvailabilityNotification().Subscribe(true)
 		off := w.Obs.AvailabilityNotification().Subscribe(false)
-		all := w.Obs.EventStream().Subscribe(obs_api.AllEvents)
 		for {
 			select {
-			case e := <-all:
-				fmt.Printf("%T\n", e)
 			case <-on:
 				w.SendToWeb(ctx, `{"enabled": true}`)
-				w.SendScene(ctx)
-				w.Log.Log().Msg("TRUE")
+				w.Log.Debug().Msg("ON")
+
+				go w.SendInputs(ctx)
 			case <-off:
 				w.SendToWeb(ctx, `{"enabled": false}`)
 			case <-ctx.Done():
@@ -82,25 +86,30 @@ func (w *Scenes) Init(ctx context.Context, c api.WidgetConstructor) error {
 				return
 			}
 		}
+
 	}()
+
 	return nil
 }
 
-func (w *Scenes) Dispatch(ctx context.Context, event string) error {
-	w.Log.Log().Str("event", event).Msg("Pressed")
+func (w *ObsInputs) Dispatch(ctx context.Context, event string) error {
+	w.Log.Debug().Str("event", event).Msg("Pressed")
 
-	if sc, ok := strings.CutPrefix(event, "set|"); ok {
+	if device, ok := strings.CutPrefix(event, "set|"); ok {
 		if err := w.Obs.Execute(func(o *goobs.Client) (err error) {
-			_, err = o.Scenes.SetCurrentProgramScene(&scenes.SetCurrentProgramSceneParams{SceneName: &sc})
+			_, err = o.Inputs.SetInputSettings(&inputs.SetInputSettingsParams{
+				InputName:     &w.Args.InputName,
+				InputSettings: map[string]any{"device_name": device},
+			})
 			return err
 		}); err != nil {
-			w.Log.Error().Str("event", event).Err(err).Msg("SetCurrentProgramScene()")
-		} else if err := w.SendScene(ctx); err != nil {
-			w.Log.Error().Str("event", event).Err(err).Msg("w.SendScene()")
+			w.Log.Error().Str("event", event).Err(err).Msg("SetInputSettings()")
+		} else if err := w.SendInputs(ctx); err != nil {
+			w.Log.Error().Str("event", event).Err(err).Msg("w.SendInputs()")
 		}
 
-	} else if event == "load" {
-		w.SendScene(ctx)
+	} else if event == "load" { // TODO redundant
+		w.SendInputs(ctx)
 
 	} else {
 		w.Log.Error().Str("event", event).Msg("wtf")
@@ -110,16 +119,18 @@ func (w *Scenes) Dispatch(ctx context.Context, event string) error {
 }
 
 // SendScene - scenelist -> web
-func (w *Scenes) SendScene(ctx context.Context) error {
-	res := &scenes.GetSceneListResponse{}
+func (w *ObsInputs) SendInputs(ctx context.Context) error {
+	res := &inputs.GetInputSettingsResponse{}
 	if err := w.Obs.Execute(func(o *goobs.Client) (err error) {
-		res, err = o.Scenes.GetSceneList()
+		res, err = o.Inputs.GetInputSettings(&inputs.GetInputSettingsParams{InputName: &w.Args.InputName})
 		return err
 	}); err != nil {
-		return fmt.Errorf("GetSceneList() failed: %w", err)
-	}
-	if res.Scenes != nil { // workarround bug in lib, some time err==nil
-		w.SendToWeb(ctx, pirog.ToJson(res))
+		return fmt.Errorf("GetInputSettings(%s) failed: %w", w.Args.InputName, err)
+	} else {
+		w.SendToWeb(ctx, pirog.ToJson(struct {
+			Selected any
+			List     []string
+		}{res.InputSettings["device_name"], w.Args.List}))
 	}
 
 	return nil

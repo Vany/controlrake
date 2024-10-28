@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/rs/zerolog"
 	"github.com/vany/controlrake/src/config"
@@ -125,7 +126,7 @@ func (h *LoggingHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *HTTPServer) CreateWsHandleFunc(ctx context.Context, subsystem api.Comunicativo) websocket.Handler {
-	localChaner := FANOUT(subsystem.WebSpittoon())
+	localChaner := FFF(subsystem.WebSpittoon())
 	return func(ws *websocket.Conn) {
 		defer ws.Close()
 		log := s.Logger
@@ -144,6 +145,7 @@ func (s *HTTPServer) CreateWsHandleFunc(ctx context.Context, subsystem api.Comun
 						log.Error().Err(err).Msg("Can't create new websocket frame")
 					} else {
 						fw.Write([]byte(msg))
+						log.Debug().Str("msg", msg).Send()
 					}
 				case <-wsctx.Done():
 					log.Debug().Msg("WS Service terminated")
@@ -179,5 +181,38 @@ func (s *HTTPServer) CreateWsHandleFunc(ctx context.Context, subsystem api.Comun
 
 		}
 		log.Debug().Msg("websocket close")
+	}
+}
+
+func FFF[T any](src <-chan T) (
+	generator func() (tap <-chan T, destructor func()),
+) {
+	chans := make(map[chan T]struct{})
+	mu := sync.Mutex{}
+	// TODO wrap map in mutex
+	go func() {
+		for msg := range src {
+			mu.Lock()
+			for c := range chans {
+				c <- msg
+			}
+			mu.Unlock()
+		}
+		for c := range chans {
+			close(c)
+		}
+	}()
+
+	return func() (tap <-chan T, destructor func()) {
+		ret := make(chan T)
+		mu.Lock()
+		defer mu.Unlock()
+		chans[ret] = struct{}{}
+		return ret, func() {
+			mu.Lock()
+			defer mu.Unlock()
+			delete(chans, ret)
+			close(ret)
+		}
 	}
 }
