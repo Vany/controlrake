@@ -140,6 +140,7 @@ func (s *HTTPServer) CreateWsHandleFunc(ctx context.Context, subsystem api.Comun
 		go func() {
 			for {
 				select {
+				// send must be readed asap. DO NOT BLOCK
 				case msg := <-send: // widgets.Spittoon tee
 					if fw, err := ws.NewFrameWriter(websocket.TextFrame); err != nil {
 						log.Error().Err(err).Msg("Can't create new websocket frame")

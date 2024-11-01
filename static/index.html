@@ -6,17 +6,12 @@
 </head>
 
 <body>
-    <div id = "content">
-        Content
-    </div>
+    <div id = "content"></div>
 </body>
 
 
 <script defer>
     ConnectWebsocket("ws", () => FetchWidgets(""));
-
-    // TODO refetch widgets when server restarted
-
 
     function onWSMessage(ev) {
         const pipe = ev.data.indexOf("|");
@@ -34,14 +29,20 @@
             .then((text) => {
                 let c = document.getElementById("content");
                 c.innerHTML = text;
-                for (let s of c.getElementsByTagName("script")) {
-                    eval(s.innerText);
-                }
+                for (let s of c.getElementsByTagName("script")) eval(s.innerText);
+            })}
 
-            });
-    }
+    let wakeLock = null;
+    async function requestWakeLock() {
+        try {
+            wakeLock = await navigator.wakeLock.request('screen');
+            console.log('Wake lock is active');
+            wakeLock.addEventListener('release', () => console.log('Wake lock was released'));
+        } catch (err) {
+            console.error(`Wake lock request failed: ${err.name}, ${err.message}`);
+        }}
+    requestWakeLock();
 
-    // TODO  -  Do not allow browser to dim monile screen
 
 </script>
 
