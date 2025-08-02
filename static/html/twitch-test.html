@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎮 Twitch Component Test - ControlRake</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(145, 70, 255, 0.1);
+            border-radius: 16px;
+            border: 1px solid rgba(145, 70, 255, 0.3);
+        }
+        
+        .status {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #9146FF 0%, #6441a5 100%);
+            color: white;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(145, 70, 255, 0.4);
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .events-log {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .event-entry {
+            margin-bottom: 5px;
+            padding: 3px;
+            border-left: 3px solid #9146FF;
+            padding-left: 8px;
+        }
+        
+        .connection-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .connected { background: #00ff88; }
+        .disconnected { background: #ff6b6b; }
+        .connecting { background: #ffaa00; animation: pulse 1s infinite; }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .component-container {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎮 Twitch Component Live Test</h1>
+            <p>Real-time event subscription and UI updates</p>
+        </div>
+        
+        <div class="status">
+            <h3>📊 Connection Status</h3>
+            <div id="connection-status">
+                <span class="connection-indicator disconnected" id="status-indicator"></span>
+                <span id="status-text">Initializing...</span>
+            </div>
+            <div id="stats" style="margin-top: 10px; font-size: 14px; opacity: 0.8;">
+                Messages received: <span id="msg-count">0</span> | 
+                Events processed: <span id="event-count">0</span> |
+                Last activity: <span id="last-activity">Never</span>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button onclick="connectWS()">🔌 Connect WebSocket</button>
+            <button onclick="spawnComponent()">🚀 Spawn Twitch Component</button>
+            <button onclick="renderComponent()">🎨 Render Component</button>
+            <button onclick="connectTwitch()">🎮 Connect to Twitch</button>
+            <button onclick="disconnectTwitch()">🚪 Disconnect Twitch</button>
+            <button onclick="clearEvents()">🧹 Clear Log</button>
+        </div>
+        
+        <div class="events-log" id="events-log">
+            <div class="event-entry">📝 Event log initialized. Waiting for events...</div>
+        </div>
+        
+        <div class="component-container" id="component-container">
+            <!-- Twitch component will be rendered here -->
+        </div>
+    </div>
+
+    <script src="/static/js/controlrake.js"></script>
+    <script>
+        // 🎯 Global state tracking
+        let wsConnected = false;
+        let componentSpawned = false;
+        let componentRendered = false;
+        let eventCount = 0;
+        let messageCount = 0;
+
+        // 📊 UI update functions
+        function updateConnectionStatus(status, text) {
+            const indicator = document.getElementById('status-indicator');
+            const statusText = document.getElementById('status-text');
+            
+            indicator.className = `connection-indicator ${status}`;
+            statusText.textContent = text;
+        }
+
+        function logEvent(message, type = 'info') {
+            eventCount++;
+            const log = document.getElementById('events-log');
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = 'event-entry';
+            entry.innerHTML = `<span style="color: #888;">[${timestamp}]</span> ${message}`;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+            
+            // Update stats
+            document.getElementById('event-count').textContent = eventCount;
+            document.getElementById('last-activity').textContent = timestamp;
+        }
+
+        function updateStats() {
+            document.getElementById('msg-count').textContent = messageCount;
+        }
+
+        // 🔌 WebSocket connection
+        async function connectWS() {
+            try {
+                updateConnectionStatus('connecting', 'Connecting to WebSocket...');
+                logEvent('🔌 Attempting WebSocket connection...');
+                
+                await system.connect('/ws');
+                wsConnected = true;
+                
+                updateConnectionStatus('connected', 'WebSocket Connected');
+                logEvent('✅ WebSocket connected successfully');
+                
+                // 📡 Register event handlers for Twitch component
+                setupTwitchEventHandlers();
+                
+            } catch (error) {
+                updateConnectionStatus('disconnected', 'Connection Failed');
+                logEvent(`❌ WebSocket connection failed: ${error.message}`, 'error');
+            }
+        }
+
+        // 📡 Setup Twitch component event handlers
+        function setupTwitchEventHandlers() {
+            logEvent('📡 Setting up Twitch event handlers...');
+            
+            // Handle connection status changes
+            system.registerEventHandler("twitch:main", "connection_status", (data, payload) => {
+                logEvent(`🔗 Connection status: ${data.connected ? 'CONNECTED' : 'DISCONNECTED'}`);
+                
+                if (data.connected) {
+                    updateConnectionStatus('connected', `Connected to #${data.channel || 'unknown'}`);
+                    messageCount = data.messages_received || 0;
+                } else {
+                    updateConnectionStatus('disconnected', data.error || 'Disconnected');
+                }
+                updateStats();
+                
+                // Trigger component re-render to update UI
+                if (componentRendered) {
+                    renderComponent();
+                }
+            });
+
+            // Handle chat messages
+            system.registerEventHandler("twitch:main", "chat_message", (data, payload) => {
+                messageCount++;
+                logEvent(`💬 Chat: ${data.username}: ${data.message}`);
+                updateStats();
+                
+                // Trigger component re-render to show new message
+                if (componentRendered) {
+                    renderComponent();
+                }
+            });
+
+            // Handle user joins
+            system.registerEventHandler("twitch:main", "user_join", (data, payload) => {
+                logEvent(`👋 ${data.username} joined the channel`);
+            });
+
+            // Handle user parts
+            system.registerEventHandler("twitch:main", "user_part", (data, payload) => {
+                logEvent(`👋 ${data.username} left the channel`);
+            });
+
+            // Handle authentication status
+            system.registerEventHandler("twitch:main", "authentication_status", (data, payload) => {
+                logEvent(`🔐 Authentication: ${data.authenticated ? 'SUCCESS' : 'FAILED'}`);
+                
+                // Trigger component re-render to update auth status
+                if (componentRendered) {
+                    renderComponent();
+                }
+            });
+
+            // Handle error states
+            system.registerEventHandler("twitch:main", "error_state", (data, payload) => {
+                const errorType = data.is_permanent ? 'PERMANENT' : 'TEMPORARY';
+                logEvent(`🚨 Error (${errorType}): ${data.message}`, 'error');
+                
+                if (data.is_permanent) {
+                    updateConnectionStatus('disconnected', `Error: ${data.message}`);
+                } else {
+                    updateConnectionStatus('connecting', `Retrying... (${data.retry_count})`);
+                }
+                
+                // Trigger component re-render to show error state
+                if (componentRendered) {
+                    renderComponent();
+                }
+            });
+
+            // Handle general events
+            system.registerEventHandler("twitch:main", "general", (data, payload) => {
+                logEvent(`📡 Event: ${JSON.stringify(data)}`);
+            });
+            
+            logEvent('✅ Twitch event handlers registered');
+        }
+
+        // 🚀 Component management
+        async function spawnComponent() {
+            if (!wsConnected) {
+                logEvent('❌ WebSocket not connected. Connect first.', 'error');
+                return;
+            }
+            
+            try {
+                logEvent('🚀 Spawning Twitch component...');
+                await system.spawn('twitch', 'main');
+                componentSpawned = true;
+                logEvent('✅ Twitch component spawned successfully');
+            } catch (error) {
+                logEvent(`❌ Failed to spawn component: ${error.message}`, 'error');
+            }
+        }
+
+        async function renderComponent() {
+            if (!componentSpawned) {
+                logEvent('❌ Component not spawned. Spawn first.', 'error');
+                return;
+            }
+            
+            try {
+                logEvent('🎨 Rendering Twitch component...');
+                await system.render('#component-container', 'twitch:main');
+                componentRendered = true;
+                logEvent('✅ Twitch component rendered successfully');
+            } catch (error) {
+                logEvent(`❌ Failed to render component: ${error.message}`, 'error');
+            }
+        }
+
+        // 🎮 Twitch controls
+        function connectTwitch() {
+            if (!wsConnected) {
+                logEvent('❌ WebSocket not connected', 'error');
+                return;
+            }
+            
+            logEvent('🎮 Requesting Twitch connection...');
+            system.websocket.send('twitch:main connect');
+        }
+
+        function disconnectTwitch() {
+            if (!wsConnected) {
+                logEvent('❌ WebSocket not connected', 'error');
+                return;
+            }
+            
+            logEvent('🚪 Requesting Twitch disconnection...');
+            system.websocket.send('twitch:main disconnect');
+        }
+
+        function clearEvents() {
+            const log = document.getElementById('events-log');
+            log.innerHTML = '<div class="event-entry">📝 Event log cleared.</div>';
+            eventCount = 0;
+            messageCount = 0;
+            updateStats();
+        }
+
+        // 🚀 Auto-start sequence
+        window.addEventListener('load', () => {
+            logEvent('🚀 ControlRake Twitch Test loaded');
+            logEvent('👉 Click "Connect WebSocket" to begin');
+            
+            // Listen for global ControlRake events
+            window.addEventListener('controlrake-reconnection', (event) => {
+                const { type, data } = event.detail;
+                switch (type) {
+                    case 'attempting':
+                        logEvent(`🔄 Reconnection attempt ${data.attempt}/${data.maxAttempts}...`);
+                        updateConnectionStatus('connecting', 'Reconnecting...');
+                        break;
+                    case 'success':
+                        logEvent('✅ Reconnection successful');
+                        updateConnectionStatus('connected', 'WebSocket Reconnected');
+                        break;
+                    case 'failed':
+                        logEvent('❌ Reconnection failed');
+                        updateConnectionStatus('disconnected', 'Connection Failed');
+                        break;
+                }
+            });
+
+            // Listen for global component events
+            window.addEventListener('controlrake-component-event', (event) => {
+                const { component, eventType, data } = event.detail;
+                logEvent(`📡 Global event: ${component}.${eventType} - ${JSON.stringify(data)}`);
+            });
+        });
+
+        // 🎯 Enable debug mode for detailed logging
+        if (window.system) {
+            window.system.setDebugMode(true);
+        }
+    </script>
+</body>
+</html>

@@ -4,6 +4,9 @@ go.work.sum
 
 sounds/
 release/
+/target/
+/test_output/
+/data/
 
 *.exe
 *.exe~
@@ -12,6 +15,3 @@ release/
 *.dylib
 *.test
 *.out
-
-
-

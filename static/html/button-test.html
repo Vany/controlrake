@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ControlRake Button Test 🔘</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <script src="/static/js/controlrake.js?v=20250720-fix&nocache=true"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .status.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .status.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .status.info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .button-container {
+            min-height: 120px;
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+            background: #fafafa;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 15px 0;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-primary:hover { background: #0056b3; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-success:hover { background: #1e7e34; }
+        .btn-warning { background: #ffc107; color: #212529; }
+        .btn-warning:hover { background: #e0a800; }
+        .log {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔘 ControlRake Button Component Test</h1>
+        <p>Interactive demonstration of the component rendering system</p>
+    </div>
+
+    <div class="test-section">
+        <h2>🚀 Connection Status</h2>
+        <div id="connection-status" class="status info">Connecting to WebSocket...</div>
+    </div>
+
+    <div class="test-section">
+        <h2>🎛️ Button Controls</h2>
+        <div class="controls">
+            <button class="btn btn-primary" onclick="spawnButton()">🔘 Spawn Button</button>
+            <button class="btn btn-success" onclick="renderButton()">🎨 Render Button</button>
+            <button class="btn btn-warning" onclick="spawnCustomButton()">✨ Spawn Custom Button</button>
+        </div>
+        
+        <h3>🆕 Default Instance Architecture Examples</h3>
+        <div class="controls">
+            <button class="btn btn-primary" onclick="testDefaultInstanceValidation()">⚠️ Test Default Instance Validation</button>
+            <button class="btn btn-success" onclick="demonstrateDefaultSyntax()">📝 Show Default Syntax Examples</button>
+        </div>
+        
+        <h3>📦 Button Container</h3>
+        <div id="button-container" class="button-container">
+            <p style="color: #666; text-align: center; margin: 40px 0;">
+                🔽 Rendered buttons will appear here 🔽
+            </p>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>📊 Test Results</h2>
+        <div id="test-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>📝 Debug Log</h2>
+        <div id="debug-log" class="log">Starting ControlRake test...<br></div>
+    </div>
+
+    <script>
+        // Test state
+        let testState = {
+            connected: false,
+            buttonSpawned: false,
+            buttonRendered: false
+        };
+
+        // Logging utility
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEl = document.getElementById('debug-log');
+            const color = type === 'error' ? '#ff6b6b' : type === 'success' ? '#51cf66' : '#74c0fc';
+            logEl.innerHTML += `<span style="color: ${color}">[${timestamp}] ${message}</span><br>`;
+            logEl.scrollTop = logEl.scrollHeight;
+            console.log(`[${timestamp}] ${message}`);
+        }
+
+        function updateStatus(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `status ${type}`;
+        }
+
+        function updateTestResults() {
+            const results = document.getElementById('test-results');
+            const tests = [
+                { name: 'WebSocket Connection', passed: testState.connected },
+                { name: 'Button Spawning', passed: testState.buttonSpawned },
+                { name: 'Button Rendering', passed: testState.buttonRendered }
+            ];
+
+            results.innerHTML = tests.map(test => 
+                `<div class="status ${test.passed ? 'success' : 'info'}">
+                    ${test.passed ? '✅' : '⏳'} ${test.name}
+                </div>`
+            ).join('');
+        }
+
+        // Test functions
+        async function connectToSystem() {
+            try {
+                log('🔌 Connecting to ControlRake WebSocket...', 'info');
+                await system.connect();
+                testState.connected = true;
+                updateStatus('connection-status', '✅ Connected to WebSocket successfully!', 'success');
+                log('✅ WebSocket connection established', 'success');
+                updateTestResults();
+            } catch (error) {
+                updateStatus('connection-status', `❌ Connection failed: ${error.message}`, 'error');
+                log(`❌ Connection failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function spawnButton() {
+            try {
+                log('🔘 Spawning button component...', 'info');
+                await system.spawn("button", "test-btn");
+                testState.buttonSpawned = true;
+                log('✅ Button component spawned successfully: button:test-btn', 'success');
+                updateTestResults();
+            } catch (error) {
+                log(`❌ Button spawn failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function renderButton() {
+            try {
+                log('🎨 Rendering button component...', 'info');
+                await system.render("#button-container", "button:test-btn");
+                testState.buttonRendered = true;
+                log('✅ Button rendered successfully in container', 'success');
+                updateTestResults();
+            } catch (error) {
+                log(`❌ Button render failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function spawnCustomButton() {
+            try {
+                log('✨ Spawning custom button component with configuration...', 'info');
+                
+                // 🎨 Custom button configuration
+                const buttonConfig = {
+                    label: "🎯 Custom Button",
+                    initial_clicks: 0,
+                    color: "purple",
+                    size: "large",
+                    enable_animations: true,
+                    click_sound: "enabled"
+                };
+                
+                // Enhanced spawn with custom configuration
+                await system.spawnWithConfig("button", "custom-btn", buttonConfig);
+                
+                // Log configuration for debugging
+                log(`⚙️ Button configuration: ${JSON.stringify(buttonConfig)}`, 'info');
+                
+                await system.render("#button-container", "button:custom-btn");
+                log('✅ Custom button spawned with config and rendered', 'success');
+            } catch (error) {
+                log(`❌ Custom button failed: ${error.message}`, 'error');
+            }
+        }
+
+        /// 🆕 Test default instance validation - should fail for button components
+        async function testDefaultInstanceValidation() {
+            try {
+                log('⚠️ Testing default instance validation (this should fail)...', 'info');
+                
+                // This should throw an error since button components don't support default instances
+                await system.spawn("button");  // No instance ID provided
+                
+                log('❌ ERROR: Validation should have failed but didn\'t!', 'error');
+            } catch (error) {
+                log(`✅ Validation working correctly: ${error.message}`, 'success');
+            }
+        }
+
+        /// 📝 Demonstrate default instance syntax examples
+        async function demonstrateDefaultSyntax() {
+            log('📝 Demonstrating default instance syntax examples:', 'info');
+            
+            // Examples of address formats
+            const examples = [
+                { syntax: '"clock:"', description: 'Default clock instance (supported)' },
+                { syntax: '"clock:my-timer"', description: 'Named clock instance (also supported)' },
+                { syntax: '"http:"', description: 'Default HTTP server instance (supported)' },
+                { syntax: '"twitch:"', description: 'Default Twitch client instance (supported)' },
+                { syntax: '"button:test-btn"', description: 'Named button instance (REQUIRED - no default)' },
+                { syntax: '"button:"', description: 'Default button instance (NOT SUPPORTED - will fail)' }
+            ];
+            
+            examples.forEach((example, index) => {
+                setTimeout(() => {
+                    log(`${index + 1}. ${example.syntax} → ${example.description}`, 'info');
+                }, index * 500);
+            });
+            
+            setTimeout(() => {
+                log('💡 Key insight: Components like clock, http, twitch support default instances', 'success');
+                log('⚠️ Components like button require explicit instance IDs for state management', 'info');
+            }, examples.length * 500 + 500);
+        }
+
+        async function runFullTest() {
+            log('🚀 Starting full component test sequence...', 'info');
+            
+            try {
+                await connectToSystem();
+                await new Promise(resolve => setTimeout(resolve, 500)); // Small delay
+                
+                await spawnButton();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                await renderButton();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                log('🎉 Full test sequence completed successfully!', 'success');
+            } catch (error) {
+                log(`❌ Test sequence failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Auto-run test on page load
+        window.onload = function() {
+            log('📄 Page loaded, initializing test...', 'info');
+            updateTestResults();
+            
+            // Wait a moment for everything to initialize, then run the test
+            setTimeout(runFullTest, 1000);
+        };
+
+        // Note: Removed console.log override to prevent infinite recursion
+        // The log() function already calls console.log internally
+    </script>
+</body>
+</html>

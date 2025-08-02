@@ -1,49 +1,398 @@
-<html>
-
+<!DOCTYPE html>
+<html lang="en">
 <head>
-    <script src="index.js"></script>
-    <link rel="stylesheet" href="index.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ControlRake 🚀</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+        h1 {
+            text-align: center;
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        .subtitle {
+            text-align: center;
+            font-size: 1.2em;
+            margin-bottom: 40px;
+            opacity: 0.9;
+        }
+        .demo-links {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .demo-links a {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            text-decoration: none;
+            padding: 15px 30px;
+            margin: 10px;
+            border-radius: 8px;
+            font-weight: bold;
+            transition: all 0.3s;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .demo-links a:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        .connection-status {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-connecting { background-color: #ffa500; }
+        .status-connected { background-color: #00ff00; }
+        .status-error { background-color: #ff0000; }
+        .status-message {
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .error-details {
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(255, 0, 0, 0.1);
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        .feature {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .feature h3 {
+            margin: 0 0 10px 0;
+            font-size: 2em;
+        }
+        #clock-container {
+            margin: 20px 0;
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .loading-spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
 </head>
-
 <body>
-    <div id = "content"></div>
+    <div class="container">
+        <h1>🚀 ControlRake</h1>
+        <div class="subtitle">Component Messaging System with Real-time Web Interface</div>
+        
+        <!-- Connection Status Display -->
+        <div class="connection-status">
+            <div id="connection-status">
+                <span class="status-indicator status-connecting" id="status-indicator"></span>
+                <span id="status-text">Initializing...</span>
+            </div>
+            <div class="status-message" id="status-message">Preparing to connect to server</div>
+            <div class="error-details" id="error-details" style="display: none;"></div>
+        </div>
+
+        <!-- Clock Container -->
+        <div id="clock-container">
+            <div class="loading-spinner"></div>
+        </div>
+
+        <div class="demo-links">
+            <a href="/static/html/button-test.html">🔘 Button Component Demo</a>
+            <a href="#" onclick="clockDebug.getStatus(); return false;">🕰️ Clock Status</a>
+            <a href="/static/js/controlrake.js">📜 JavaScript Client Library</a>
+        </div>
+
+        <div class="features">
+            <div class="feature">
+                <h3>🦀</h3>
+                <p><strong>Rust Backend</strong><br>Type-safe component system with message bus</p>
+            </div>
+            <div class="feature">
+                <h3>🌐</h3>
+                <p><strong>Web Interface</strong><br>Real-time HTML rendering via WebSocket</p>
+            </div>
+            <div class="feature">
+                <h3>⚡</h3>
+                <p><strong>Interactive</strong><br>Bidirectional communication between browser and components</p>
+            </div>
+            <div class="feature">
+                <h3>🧩</h3>
+                <p><strong>Modular</strong><br>Easy to extend with new component types</p>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 40px; opacity: 0.8;">
+            <p>🎨 Built with Rust, WebSockets, and modern web technologies</p>
+            <p>Ready to build amazing interactive applications!</p>
+        </div>
+    </div>
+
+    <!-- ControlRake Client Library -->
+    <script src="/static/js/controlrake.js"></script>
+    
+    <!-- Enhanced Component Initialization -->
+    <script>
+        // State management for initialization flow
+        const initState = {
+            connected: false,
+            rendered: false,
+            ticking: false,
+            error: null
+        };
+
+        // UI update functions
+        function updateConnectionStatus(status, message, errorDetails = null) {
+            const indicator = document.getElementById('status-indicator');
+            const statusText = document.getElementById('status-text');
+            const statusMessage = document.getElementById('status-message');
+            const errorDetailsElement = document.getElementById('error-details');
+
+            // Update indicator
+            indicator.className = `status-indicator status-${status}`;
+            
+            // Update text based on status
+            switch (status) {
+                case 'connecting':
+                    statusText.textContent = 'Connecting...';
+                    break;
+                case 'connected':
+                    statusText.textContent = 'Connected';
+                    break;
+                case 'error':
+                    statusText.textContent = 'Connection Failed';
+                    break;
+            }
+
+            statusMessage.textContent = message;
+
+            // Show/hide error details
+            if (errorDetails) {
+                errorDetailsElement.textContent = errorDetails;
+                errorDetailsElement.style.display = 'block';
+            } else {
+                errorDetailsElement.style.display = 'none';
+            }
+        }
+
+        function updateClockContainer(content) {
+            const container = document.getElementById('clock-container');
+            container.innerHTML = content;
+        }
+
+        // Debug interface for clock status
+        window.clockDebug = {
+            getStatus: async function() {
+                if (!initState.connected) {
+                    console.log('⚠️ Not connected to server');
+                    return;
+                }
+                
+                try {
+                    console.log('📊 Requesting clock status...');
+                    const response = await window.system.send('clock:', { action: 'status' });
+                    console.log('✅ Clock status:', response);
+                } catch (error) {
+                    console.error('❌ Failed to get clock status:', error);
+                }
+            }
+        };
+
+        // Main initialization sequence
+        async function initializeControlRake() {
+            console.log('🚀 Starting ControlRake initialization sequence...');
+            
+            try {
+                // STEP 1: Try to connect to server
+                updateConnectionStatus('connecting', 'Connecting to ControlRake server...');
+                console.log('🔌 Step 1: Attempting WebSocket connection...');
+                
+                await window.system.connect();
+                initState.connected = true;
+                
+                updateConnectionStatus('connected', 'Connected to server successfully');
+                console.log('✅ Step 1 complete: Connected to ControlRake WebSocket');
+                
+                // Small delay to ensure connection is fully established
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // STEP 2: Once connected, render the clock
+                updateConnectionStatus('connected', 'Rendering clock component...');
+                console.log('🕰️ Step 2: Rendering clock component...');
+                
+                // clock: should already be spawned by system startup (default instance)
+                await window.system.render('#clock-container', 'clock:');
+                initState.rendered = true;
+                
+                console.log('✅ Step 2 complete: Clock component rendered successfully');
+                
+                // STEP 3: Once rendered, it should start ticking automatically
+                updateConnectionStatus('connected', 'Clock is now running and ticking');
+                initState.ticking = true;
+                
+                console.log('✅ Step 3 complete: Clock is now ticking automatically');
+                console.log('🎉 ControlRake initialization sequence completed successfully!');
+                
+            } catch (error) {
+                console.error('❌ ControlRake initialization failed:', error);
+                
+                // Determine which step failed and update UI accordingly
+                if (!initState.connected) {
+                    updateConnectionStatus('error', 
+                        'Failed to connect to server', 
+                        `Connection error: ${error.message}`
+                    );
+                    
+                    updateClockContainer(`
+                        <div style="padding: 20px; background: rgba(255,0,0,0.1); border-radius: 8px; color: white; text-align: center;">
+                            <h3>🚨 Server Connection Failed</h3>
+                            <p>Unable to connect to ControlRake server.</p>
+                            <p><small>Make sure the server is running on the correct port.</small></p>
+                            <button onclick="initializeControlRake()" style="margin-top: 10px; padding: 8px 16px; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); border-radius: 4px; color: white; cursor: pointer;">
+                                🔄 Retry Connection
+                            </button>
+                        </div>
+                    `);
+                    
+                } else if (!initState.rendered) {
+                    updateConnectionStatus('connected', 
+                        'Connected, but clock rendering failed',
+                        `Render error: ${error.message}`
+                    );
+                    
+                    updateClockContainer(`
+                        <div style="padding: 20px; background: rgba(255,165,0,0.1); border-radius: 8px; color: white; text-align: center;">
+                            <h3>⚠️ Clock Render Failed</h3>
+                            <p>Connected to server but failed to render clock component.</p>
+                            <p><small>Error: ${error.message}</small></p>
+                            <button onclick="retryClockRender()" style="margin-top: 10px; padding: 8px 16px; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); border-radius: 4px; color: white; cursor: pointer;">
+                                🔄 Retry Render
+                            </button>
+                        </div>
+                    `);
+                }
+                
+                // Store error state
+                initState.error = error;
+            }
+        }
+
+        // Retry clock rendering specifically
+        async function retryClockRender() {
+            try {
+                updateConnectionStatus('connected', 'Retrying clock render...');
+                console.log('🔄 Retrying clock render...');
+                
+                await window.system.render('#clock-container', 'clock:');
+                initState.rendered = true;
+                initState.ticking = true;
+                
+                updateConnectionStatus('connected', 'Clock is now running and ticking');
+                console.log('✅ Clock render retry successful!');
+                
+            } catch (error) {
+                console.error('❌ Clock render retry failed:', error);
+                updateConnectionStatus('connected', 
+                    'Clock render retry failed',
+                    `Retry error: ${error.message}`
+                );
+            }
+        }
+
+        // Enhanced connection event handling
+        window.addEventListener('controlrake-reconnection', function(event) {
+            const { type, data } = event.detail;
+            
+            switch (type) {
+                case 'attempting':
+                    updateConnectionStatus('connecting', 
+                        `Reconnecting... (attempt ${data.attempt}/${data.maxAttempts})`
+                    );
+                    break;
+                    
+                case 'success':
+                    updateConnectionStatus('connected', 'Reconnected successfully');
+                    
+                    // Re-render clock after reconnection
+                    if (initState.rendered) {
+                        setTimeout(() => {
+                            window.system.render('#clock-container', 'clock:').catch(error => {
+                                console.error('❌ Failed to re-render clock after reconnection:', error);
+                            });
+                        }, 1000);
+                    }
+                    break;
+                    
+                case 'failed':
+                    updateConnectionStatus('error', 
+                        'Reconnection failed after maximum attempts',
+                        'Please refresh the page to try again'
+                    );
+                    break;
+            }
+        });
+
+        // Global error handlers
+        window.addEventListener('error', function(event) {
+            console.error('🚨 Global JavaScript error:', event.error);
+        });
+
+        window.addEventListener('unhandledrejection', function(event) {
+            console.error('🚨 Unhandled promise rejection:', event.reason);
+        });
+
+        // Start initialization when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('📄 DOM loaded, starting initialization in 500ms...');
+            setTimeout(initializeControlRake, 500);
+        });
+
+        // Expose init function for manual retry
+        window.initializeControlRake = initializeControlRake;
+        window.retryClockRender = retryClockRender;
+    </script>
 </body>
-
-
-<script defer>
-    ConnectWebsocket("ws", () => FetchWidgets(""));
-
-    function onWSMessage(ev) {
-        const pipe = ev.data.indexOf("|");
-        const name = ev.data.substring(0, pipe);
-        const data = ev.data.substring(pipe+1);
-        let w = document.getElementById(name);
-        let f = w.onWSEvent;
-        if (f != null) f(data);
-        else console.log(name, " have no ws event listener");
-    }
-
-    function FetchWidgets(path) {
-        fetch("/widgets/" + path)
-            .then((response) => response.text())
-            .then((text) => {
-                let c = document.getElementById("content");
-                c.innerHTML = text;
-                for (let s of c.getElementsByTagName("script")) eval(s.innerText);
-            })}
-
-    let wakeLock = null;
-    async function requestWakeLock() {
-        try {
-            wakeLock = await navigator.wakeLock.request('screen');
-            console.log('Wake lock is active');
-            wakeLock.addEventListener('release', () => console.log('Wake lock was released'));
-        } catch (err) {
-            console.error(`Wake lock request failed: ${err.name}, ${err.message}`);
-        }}
-    requestWakeLock();
-
-
-</script>
-
 </html>

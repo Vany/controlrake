@@ -1,0 +1,874 @@
+<!-- 🎮 Modern Twitch Chat Component UI -->
+<div id="twitch-{{id}}" class="twitch-chat" style="
+    width: 100%;
+    max-width: 650px;
+    height: 500px;
+    border: 1px solid rgba(145, 70, 255, 0.3);
+    border-radius: 16px;
+    background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+    display: flex;
+    flex-direction: column;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    color: #ffffff;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(145, 70, 255, 0.2);
+    position: relative;
+    backdrop-filter: blur(10px);
+">
+    <!-- 🌟 Ambient background effect -->
+    <div style="
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: radial-gradient(circle at 20% 50%, rgba(145, 70, 255, 0.1) 0%, transparent 50%),
+                    radial-gradient(circle at 80% 80%, rgba(70, 145, 255, 0.1) 0%, transparent 50%);
+        pointer-events: none;
+        animation: ambientPulse 4s ease-in-out infinite alternate;
+    "></div>
+
+    <!-- 📺 Modern Header -->
+    <div class="chat-header" style="
+        background: linear-gradient(90deg, rgba(145, 70, 255, 0.8) 0%, rgba(100, 65, 165, 0.8) 100%);
+        backdrop-filter: blur(20px);
+        padding: 16px 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: relative;
+        z-index: 2;
+    ">
+        <div class="channel-info" style="display: flex; align-items: center; gap: 12px;">
+            <div style="
+                width: 40px;
+                height: 40px;
+                background: linear-gradient(45deg, #9146FF, #6441a5);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 18px;
+                box-shadow: 0 4px 12px rgba(145, 70, 255, 0.3);
+            ">🎮</div>
+            <div>
+                <div style="font-weight: 700; font-size: 18px; margin-bottom: 2px;">#{{{channel}}}</div>
+                <div style="font-size: 12px; opacity: 0.8;">
+                    {{#if connected}}
+                        <span style="color: #00ff88;">● LIVE</span>
+                    {{else}}
+                        <span style="color: #ff6b6b;">● OFFLINE</span>
+                    {{/if}}
+                </div>
+            </div>
+        </div>
+        
+        <div class="stats" style="
+            font-size: 12px; 
+            color: rgba(255, 255, 255, 0.9);
+            text-align: right;
+            line-height: 1.4;
+        ">
+            {{#if authenticated}}
+                <div style="font-weight: 600;">👤 {{username}}</div>
+                <div style="opacity: 0.7;">
+                    📨 <span id="stats-received-{{id}}">{{stats.messages_received}}</span> • 
+                    📤 {{stats.messages_sent}}
+                </div>
+            {{else}}
+                {{#if error_state}}
+                    {{#if error_state.is_permanent}}
+                        <div style="color: #ff6b6b; font-weight: 600;">🚨 Error</div>
+                        <div style="font-size: 10px; opacity: 0.8;">{{error_state.message}}</div>
+                    {{else}}
+                        <div style="color: #ffaa00; font-weight: 600;">⚠️ Retrying</div>
+                        <div style="font-size: 10px; opacity: 0.8;">
+                            Attempt {{error_state.retry_count}}
+                        </div>
+                    {{/if}}
+                {{else}}
+                    <div style="color: #ff6b6b; font-weight: 600;">🔐 Auth Required</div>
+                {{/if}}
+            {{/if}}
+        </div>
+    </div>
+    
+    <!-- 💬 Enhanced Message Area -->
+    <div class="messages" id="messages-{{id}}" style="
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        background: rgba(0, 0, 0, 0.2);
+        scrollbar-width: thin;
+        scrollbar-color: rgba(145, 70, 255, 0.5) rgba(255, 255, 255, 0.1);
+        position: relative;
+        z-index: 1;
+    ">
+        {{#if messages}}
+            {{#each messages}}
+                <div class="message {{type}}" style="
+                    padding: 12px 16px;
+                    border-radius: 12px;
+                    font-size: 14px;
+                    line-height: 1.5;
+                    position: relative;
+                    {{#if (eq type 'chat')}}
+                        background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.04) 100%);
+                        border: 1px solid rgba(255, 255, 255, 0.1);
+                        border-left: 4px solid {{color}};
+                    {{else if (eq type 'status')}}
+                        background: linear-gradient(135deg, rgba(145, 70, 255, 0.15) 0%, rgba(145, 70, 255, 0.05) 100%);
+                        border: 1px solid rgba(145, 70, 255, 0.3);
+                        border-left: 4px solid #9146FF;
+                    {{else}}
+                        background: linear-gradient(135deg, rgba(70, 145, 255, 0.15) 0%, rgba(70, 145, 255, 0.05) 100%);
+                        border: 1px solid rgba(70, 145, 255, 0.3);
+                        border-left: 4px solid #4691FF;
+                    {{/if}}
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+                    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+                    animation: messageSlideIn 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+                " 
+                onmouseover="this.style.transform='translateX(4px) scale(1.01)'; this.style.boxShadow='0 4px 16px rgba(145, 70, 255, 0.2)'"
+                onmouseout="this.style.transform='translateX(0) scale(1)'; this.style.boxShadow='0 2px 8px rgba(0, 0, 0, 0.1)'">
+                    
+                    <div style="
+                        color: {{color}}; 
+                        word-wrap: break-word; 
+                        font-weight: 500;
+                        margin-bottom: 4px;
+                    ">{{text}}</div>
+                    
+                    <div style="
+                        color: rgba(255, 255, 255, 0.5);
+                        font-size: 11px;
+                        font-weight: 400;
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                    ">
+                        <span>{{timestamp}}</span>
+                        {{#if (eq type 'chat')}}
+                            <span style="
+                                background: rgba({{color}}, 0.2);
+                                padding: 2px 6px;
+                                border-radius: 8px;
+                                font-size: 10px;
+                                color: {{color}};
+                            ">CHAT</span>
+                        {{/if}}
+                    </div>
+                </div>
+            {{/each}}
+        {{else}}
+            <div style="
+                text-align: center;
+                color: rgba(255, 255, 255, 0.6);
+                font-style: italic;
+                margin-top: 40px;
+                padding: 24px;
+                background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+                border-radius: 16px;
+                border: 1px dashed rgba(255, 255, 255, 0.2);
+            ">
+                {{#if connected}}
+                    <div style="font-size: 18px; margin-bottom: 8px;">💭</div>
+                    <div>No messages yet... Start the conversation!</div>
+                {{else}}
+                    <div style="font-size: 18px; margin-bottom: 8px;">🚀</div>
+                    <div>Connect to start receiving chat messages</div>
+                {{/if}}
+            </div>
+        {{/if}}
+    </div>
+    
+    <!-- ⌨️ Modern Input Area -->
+    <div class="chat-input" style="
+        padding: 16px 20px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        background: linear-gradient(180deg, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.5) 100%);
+        backdrop-filter: blur(20px);
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        position: relative;
+        z-index: 2;
+    ">
+        {{#if authenticated}}
+            <div style="position: relative; flex: 1;">
+                <input 
+                    type="text" 
+                    id="input-{{id}}" 
+                    placeholder="Type your message..."
+                    maxlength="500"
+                    style="
+                        width: 100%;
+                        padding: 12px 20px;
+                        border: 2px solid rgba(255, 255, 255, 0.1);
+                        border-radius: 25px;
+                        background: rgba(255, 255, 255, 0.08);
+                        backdrop-filter: blur(10px);
+                        color: #ffffff;
+                        font-size: 14px;
+                        outline: none;
+                        transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+                        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+                    "
+                    onkeypress="if(event.key==='Enter' && this.value.trim()) {
+                        window.twitchSend_{{id}}(JSON.stringify({action: 'send_message', text: this.value.trim()}));
+                        this.value = '';
+                        event.preventDefault();
+                    }"
+                    onfocus="
+                        this.style.borderColor='rgba(145, 70, 255, 0.6)';
+                        this.style.boxShadow='inset 0 1px 3px rgba(0, 0, 0, 0.2), 0 0 0 3px rgba(145, 70, 255, 0.2)';
+                        this.style.background='rgba(255, 255, 255, 0.12)';
+                    "
+                    onblur="
+                        this.style.borderColor='rgba(255, 255, 255, 0.1)';
+                        this.style.boxShadow='inset 0 1px 3px rgba(0, 0, 0, 0.2)';
+                        this.style.background='rgba(255, 255, 255, 0.08)';
+                    "
+                />
+                
+                <!-- Character counter -->
+                <div style="
+                    position: absolute;
+                    right: 15px;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    font-size: 10px;
+                    color: rgba(255, 255, 255, 0.4);
+                    pointer-events: none;
+                ">
+                    <span id="char-count-{{id}}">0</span>/500
+                </div>
+            </div>
+            
+            <button 
+                id="send-{{id}}"
+                onclick="
+                    const input = document.getElementById('input-{{id}}');
+                    if(input.value.trim()) {
+                        window.twitchSend_{{id}}(JSON.stringify({action: 'send_message', text: input.value.trim()}));
+                        input.value = '';
+                        document.getElementById('char-count-{{id}}').textContent = '0';
+                    }
+                "
+                style="
+                    padding: 12px 24px;
+                    border: none;
+                    border-radius: 25px;
+                    background: linear-gradient(135deg, #9146FF 0%, #6441a5 100%);
+                    color: white;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+                    font-size: 14px;
+                    box-shadow: 0 4px 12px rgba(145, 70, 255, 0.3);
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    min-width: 100px;
+                    justify-content: center;
+                "
+                onmouseover="
+                    this.style.transform='translateY(-2px) scale(1.05)';
+                    this.style.boxShadow='0 6px 20px rgba(145, 70, 255, 0.4)';
+                "
+                onmouseout="
+                    this.style.transform='translateY(0) scale(1)';
+                    this.style.boxShadow='0 4px 12px rgba(145, 70, 255, 0.3)';
+                "
+            >
+                📤 Send
+            </button>
+        {{else}}
+            <div style="
+                text-align: center;
+                color: rgba(255, 107, 107, 0.9);
+                font-style: italic;
+                flex: 1;
+                padding: 16px;
+                background: linear-gradient(135deg, rgba(255, 107, 107, 0.1) 0%, rgba(255, 107, 107, 0.05) 100%);
+                border-radius: 16px;
+                border: 1px dashed rgba(255, 107, 107, 0.3);
+            ">
+                <div style="font-weight: 600; margin-bottom: 4px;">🔐 Authentication Required</div>
+                <div style="
+                    font-size: 12px;
+                    color: rgba(255, 255, 255, 0.6);
+                ">
+                    Server will handle authentication automatically when connecting
+                </div>
+            </div>
+        {{/if}}
+    </div>
+    
+    <!-- 🔄 Modern Action Buttons -->
+    <div class="actions" style="
+        padding: 12px 20px;
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+        background: linear-gradient(180deg, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0.4) 100%);
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        flex-wrap: wrap;
+        position: relative;
+        z-index: 2;
+    ">
+        {{#if connected}}
+            <button 
+                onclick="window.twitchSend_{{id}}('reconnect')"
+                style="
+                    padding: 6px 12px;
+                    border: 1px solid rgba(0, 255, 136, 0.4);
+                    border-radius: 16px;
+                    background: linear-gradient(135deg, rgba(0, 255, 136, 0.1) 0%, rgba(0, 255, 136, 0.05) 100%);
+                    color: #00ff88;
+                    font-size: 11px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+                    display: flex;
+                    align-items: center;
+                    gap: 4px;
+                "
+                onmouseover="
+                    this.style.background='linear-gradient(135deg, rgba(0, 255, 136, 0.2) 0%, rgba(0, 255, 136, 0.1) 100%)';
+                    this.style.transform='translateY(-1px) scale(1.05)';
+                    this.style.boxShadow='0 4px 12px rgba(0, 255, 136, 0.3)';
+                "
+                onmouseout="
+                    this.style.background='linear-gradient(135deg, rgba(0, 255, 136, 0.1) 0%, rgba(0, 255, 136, 0.05) 100%)';
+                    this.style.transform='translateY(0) scale(1)';
+                    this.style.boxShadow='none';
+                "
+            >
+                🔄 Reconnect
+            </button>
+            
+            <button 
+                onclick="window.twitchSend_{{id}}('disconnect')"
+                style="
+                    padding: 6px 12px;
+                    border: 1px solid rgba(255, 107, 107, 0.4);
+                    border-radius: 16px;
+                    background: linear-gradient(135deg, rgba(255, 107, 107, 0.1) 0%, rgba(255, 107, 107, 0.05) 100%);
+                    color: #ff6b6b;
+                    font-size: 11px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+                    display: flex;
+                    align-items: center;
+                    gap: 4px;
+                "
+                onmouseover="
+                    this.style.background='linear-gradient(135deg, rgba(255, 107, 107, 0.2) 0%, rgba(255, 107, 107, 0.1) 100%)';
+                    this.style.transform='translateY(-1px) scale(1.05)';
+                    this.style.boxShadow='0 4px 12px rgba(255, 107, 107, 0.3)';
+                "
+                onmouseout="
+                    this.style.background='linear-gradient(135deg, rgba(255, 107, 107, 0.1) 0%, rgba(255, 107, 107, 0.05) 100%)';
+                    this.style.transform='translateY(0) scale(1)';
+                    this.style.boxShadow='none';
+                "
+            >
+                🚪 Disconnect
+            </button>
+        {{else}}
+            {{#if error_state}}
+                {{#if error_state.is_permanent}}
+                    <div style="
+                        padding: 8px 16px;
+                        background: linear-gradient(135deg, rgba(255, 107, 107, 0.15) 0%, rgba(255, 107, 107, 0.08) 100%);
+                        border: 1px solid rgba(255, 107, 107, 0.3);
+                        border-radius: 16px;
+                        color: #ff6b6b;
+                        font-size: 11px;
+                        font-weight: 600;
+                        text-align: center;
+                        margin-bottom: 8px;
+                        width: 100%;
+                        box-shadow: 0 2px 8px rgba(255, 107, 107, 0.2);
+                    ">
+                        🚨 Manual intervention required: {{error_state.message}}
+                    </div>
+                    
+                    <button 
+                        onclick="window.twitchSend_{{id}}('oauth_start')"
+                        style="
+                            padding: 8px 16px;
+                            border: 1px solid rgba(255, 107, 107, 0.4);
+                            border-radius: 20px;
+                            background: linear-gradient(135deg, rgba(255, 107, 107, 0.1) 0%, rgba(255, 107, 107, 0.05) 100%);
+                            color: #ff6b6b;
+                            font-size: 12px;
+                            font-weight: 600;
+                            cursor: pointer;
+                            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+                        "
+                        onmouseover="
+                            this.style.background='linear-gradient(135deg, rgba(255, 107, 107, 0.2) 0%, rgba(255, 107, 107, 0.1) 100%)';
+                            this.style.transform='translateY(-2px) scale(1.05)';
+                            this.style.boxShadow='0 4px 12px rgba(255, 107, 107, 0.3)';
+                        "
+                        onmouseout="
+                            this.style.background='linear-gradient(135deg, rgba(255, 107, 107, 0.1) 0%, rgba(255, 107, 107, 0.05) 100%)';
+                            this.style.transform='translateY(0) scale(1)';
+                            this.style.boxShadow='none';
+                        "
+                    >
+                        🔗 Retry Authentication
+                    </button>
+                {{else}}
+                    <div style="
+                        padding: 6px 12px;
+                        background: linear-gradient(135deg, rgba(255, 170, 0, 0.15) 0%, rgba(255, 170, 0, 0.08) 100%);
+                        border: 1px solid rgba(255, 170, 0, 0.3);
+                        border-radius: 16px;
+                        color: #ffaa00;
+                        font-size: 11px;
+                        font-weight: 600;
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        animation: spin 1s linear infinite;
+                    ">
+                        🔄 Retrying... (Attempt {{error_state.retry_count}})
+                    </div>
+                {{/if}}
+            {{else}}
+                <button 
+                    onclick="window.twitchSend_{{id}}('connect')"
+                    style="
+                        padding: 8px 16px;
+                        border: 1px solid rgba(145, 70, 255, 0.4);
+                        border-radius: 20px;
+                        background: linear-gradient(135deg, rgba(145, 70, 255, 0.1) 0%, rgba(145, 70, 255, 0.05) 100%);
+                        color: #9146FF;
+                        font-size: 12px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+                    "
+                    onmouseover="
+                        this.style.background='linear-gradient(135deg, rgba(145, 70, 255, 0.2) 0%, rgba(145, 70, 255, 0.1) 100%)';
+                        this.style.transform='translateY(-2px) scale(1.05)';
+                        this.style.boxShadow='0 4px 12px rgba(145, 70, 255, 0.3)';
+                    "
+                    onmouseout="
+                        this.style.background='linear-gradient(135deg, rgba(145, 70, 255, 0.1) 0%, rgba(145, 70, 255, 0.05) 100%)';
+                        this.style.transform='translateY(0) scale(1)';
+                        this.style.boxShadow='none';
+                    "
+                >
+                    🚀 Connect to Chat
+                </button>
+            {{/if}}
+        {{/if}}
+    </div>
+</div>
+
+<script>
+// 🎭 Enhanced component-specific functionality with REAL-TIME EVENT SUBSCRIPTION
+(function() {
+    const componentId = "{{id}}";
+    const messagesContainer = document.getElementById('messages-' + componentId);
+    const inputElement = document.getElementById('input-' + componentId);
+    const charCountElement = document.getElementById('char-count-' + componentId);
+    
+    // 🎨 Component-specific send function to avoid global conflicts
+    window['twitchSend_' + componentId] = function(message) {
+        if (window.system && window.system.websocket) {
+            // Send message to this Twitch component
+            const targetMessage = "twitch:" + componentId + " " + message;
+            console.log("📤 Sending message: " + targetMessage);
+            window.system.websocket.send(targetMessage);
+        } else if (window.self && window.self.send) {
+            // Fallback to legacy self.send
+            window.self.send(message);
+        } else {
+            console.warn("⚠️ No send mechanism available");
+        }
+    };
+    
+    // 📡 **CRITICAL: Real-time event subscription for live UI updates**
+    if (window.system && window.system.registerEventHandler) {
+        console.log("🎯 Setting up real-time event handlers for twitch:" + componentId);
+        
+        // 🔗 Connection status updates
+        window.system.registerEventHandler("twitch:" + componentId, "connection_status", function(data) {
+            console.log("🔗 Connection status update:", data);
+            
+            // Update header connection indicator
+            const statusElement = document.querySelector("#twitch-" + componentId + " .channel-info div:nth-child(2) div:nth-child(2) span");
+            if (statusElement) {
+                if (data.connected) {
+                    statusElement.innerHTML = '<span style="color: #00ff88;">● LIVE</span>';
+                    statusElement.parentElement.style.color = '#00ff88';
+                } else {
+                    statusElement.innerHTML = '<span style="color: #ff6b6b;">● OFFLINE</span>';
+                    statusElement.parentElement.style.color = '#ff6b6b';
+                }
+            }
+            
+            // Update stats in header
+            const receivedElement = document.getElementById("stats-received-" + componentId);
+            if (receivedElement && data.messages_received !== undefined) {
+                receivedElement.textContent = data.messages_received;
+            }
+            
+            // Trigger full re-render to update authentication status and buttons
+            if (window.system && window.system.websocket) {
+                setTimeout(function() {
+                    console.log("🔄 Triggering component re-render after connection status change");
+                    window.system.render("#twitch-" + componentId, "twitch:" + componentId);
+                }, 100);
+            }
+        });
+        
+        // 💬 Chat message updates
+        window.system.registerEventHandler("twitch:" + componentId, "chat_message", function(data) {
+            console.log("💬 New chat message:", data);
+            
+            if (messagesContainer) {
+                // Create new message element
+                const messageElement = document.createElement('div');
+                messageElement.className = 'message chat';
+                messageElement.style.cssText = 
+                    "padding: 12px 16px;" +
+                    "border-radius: 12px;" +
+                    "font-size: 14px;" +
+                    "line-height: 1.5;" +
+                    "position: relative;" +
+                    "background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.04) 100%);" +
+                    "border: 1px solid rgba(255, 255, 255, 0.1);" +
+                    "border-left: 4px solid " + (data.color || '#9146FF') + ";" +
+                    "box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);" +
+                    "transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);" +
+                    "animation: messageSlideIn 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);" +
+                    "margin-bottom: 8px;";
+                
+                messageElement.innerHTML = 
+                    '<div style="color: ' + (data.color || '#9146FF') + '; word-wrap: break-word; font-weight: 500; margin-bottom: 4px;">' +
+                    '<strong>' + (data.username || 'Unknown') + ':</strong> ' + (data.message || '') +
+                    '</div>' +
+                    '<div style="color: rgba(255, 255, 255, 0.5); font-size: 11px; font-weight: 400; display: flex; justify-content: space-between; align-items: center;">' +
+                    '<span>' + (data.timestamp || new Date().toLocaleTimeString()) + '</span>' +
+                    '<span style="background: rgba(' + (data.color || '#9146FF') + ', 0.2); padding: 2px 6px; border-radius: 8px; font-size: 10px; color: ' + (data.color || '#9146FF') + ';">CHAT</span>' +
+                    '</div>';
+                
+                // Add hover effects
+                messageElement.onmouseover = function() {
+                    this.style.transform = 'translateX(4px) scale(1.01)';
+                    this.style.boxShadow = '0 4px 16px rgba(145, 70, 255, 0.2)';
+                };
+                messageElement.onmouseout = function() {
+                    this.style.transform = 'translateX(0) scale(1)';
+                    this.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.1)';
+                };
+                
+                messagesContainer.appendChild(messageElement);
+                
+                // Keep message history manageable
+                const messages = messagesContainer.children;
+                if (messages.length > 100) {
+                    messagesContainer.removeChild(messages[0]);
+                }
+                
+                // Auto-scroll to new message
+                setTimeout(scrollToBottom, 100);
+                
+                // Add subtle notification effect
+                messagesContainer.style.boxShadow = 'inset 0 0 20px rgba(145, 70, 255, 0.3)';
+                setTimeout(function() {
+                    messagesContainer.style.boxShadow = '';
+                }, 500);
+            }
+            
+            // Update message count in stats
+            const receivedElement = document.getElementById("stats-received-" + componentId);
+            if (receivedElement) {
+                const currentCount = parseInt(receivedElement.textContent) || 0;
+                receivedElement.textContent = currentCount + 1;
+            }
+        });
+        
+        // 🔐 Authentication status updates
+        window.system.registerEventHandler("twitch:" + componentId, "authentication_status", function(data) {
+            console.log("🔐 Authentication status update:", data);
+            
+            // Trigger full re-render to update auth-dependent UI elements
+            if (window.system && window.system.websocket) {
+                setTimeout(function() {
+                    console.log("🔄 Triggering component re-render after authentication change");
+                    window.system.render("#twitch-" + componentId, "twitch:" + componentId);
+                }, 100);
+            }
+        });
+        
+        // 🚨 Error state updates
+        window.system.registerEventHandler("twitch:" + componentId, "error_state", function(data) {
+            console.log("🚨 Error state update:", data);
+            
+            // Update error display in stats area
+            const statsElement = document.querySelector("#twitch-" + componentId + " .stats");
+            if (statsElement) {
+                const errorHtml = data.is_permanent ? 
+                    '<div style="color: #ff6b6b; font-weight: 600;">🚨 Error</div>' +
+                    '<div style="font-size: 10px; opacity: 0.8;">' + data.message + '</div>' :
+                    '<div style="color: #ffaa00; font-weight: 600;">⚠️ Retrying</div>' +
+                    '<div style="font-size: 10px; opacity: 0.8;">Attempt ' + data.retry_count + '</div>';
+                
+                statsElement.innerHTML = errorHtml;
+            }
+            
+            // Trigger full re-render to update button states
+            setTimeout(function() {
+                if (window.system && window.system.websocket) {
+                    console.log("🔄 Triggering component re-render after error state change");
+                    window.system.render("#twitch-" + componentId, "twitch:" + componentId);
+                }
+            }, 100);
+        });
+        
+        // 👋 User join/part notifications
+        window.system.registerEventHandler("twitch:" + componentId, "user_join", function(data) {
+            console.log("👋 User joined:", data);
+            addSystemMessage(data.username + " joined the channel", '#4691FF');
+        });
+        
+        window.system.registerEventHandler("twitch:" + componentId, "user_part", function(data) {
+            console.log("👋 User left:", data);
+            addSystemMessage(data.username + " left the channel", '#ffaa00');
+        });
+        
+        // 🎉 Special events (subs, raids, etc.)
+        window.system.registerEventHandler("twitch:" + componentId, "subscription", function(data) {
+            console.log("🎉 Subscription:", data);
+            addSystemMessage(data.username + " subscribed! 🎉", '#00ff88');
+        });
+        
+        window.system.registerEventHandler("twitch:" + componentId, "raid", function(data) {
+            console.log("⚡ Raid:", data);
+            addSystemMessage(data.username + " is raiding with " + data.viewer_count + " viewers! ⚡", '#ff6b6b');
+        });
+        
+        console.log("✅ Event handlers registered for twitch:" + componentId);
+    } else {
+        console.warn("⚠️ ControlRake system not available, event handlers not registered");
+    }
+    
+    // 📝 Helper function to add system messages
+    function addSystemMessage(text, color) {
+        color = color || '#9146FF';
+        if (!messagesContainer) return;
+        
+        const messageElement = document.createElement('div');
+        messageElement.className = 'message system';
+        messageElement.style.cssText = 
+            "padding: 12px 16px;" +
+            "border-radius: 12px;" +
+            "font-size: 14px;" +
+            "line-height: 1.5;" +
+            "position: relative;" +
+            "background: linear-gradient(135deg, rgba(70, 145, 255, 0.15) 0%, rgba(70, 145, 255, 0.05) 100%);" +
+            "border: 1px solid rgba(70, 145, 255, 0.3);" +
+            "border-left: 4px solid " + color + ";" +
+            "box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);" +
+            "animation: messageSlideIn 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);" +
+            "margin-bottom: 8px;";
+        
+        messageElement.innerHTML = 
+            '<div style="color: ' + color + '; word-wrap: break-word; font-weight: 500; margin-bottom: 4px;">' +
+            text +
+            '</div>' +
+            '<div style="color: rgba(255, 255, 255, 0.5); font-size: 11px; font-weight: 400;">' +
+            new Date().toLocaleTimeString() +
+            '</div>';
+        
+        messagesContainer.appendChild(messageElement);
+        setTimeout(scrollToBottom, 100);
+    }
+    
+    // 📜 Enhanced auto-scroll with smooth behavior
+    function scrollToBottom() {
+        if (messagesContainer) {
+            messagesContainer.scrollTo({
+                top: messagesContainer.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+    }
+    
+    // 🎯 Initial scroll
+    setTimeout(scrollToBottom, 100);
+    
+    // 📝 Character counter functionality
+    if (inputElement && charCountElement) {
+        inputElement.addEventListener('input', function() {
+            const length = this.value.length;
+            charCountElement.textContent = length;
+            
+            // Color coding for character limit
+            if (length > 450) {
+                charCountElement.style.color = '#ff6b6b';
+            } else if (length > 400) {
+                charCountElement.style.color = '#ffaa00';
+            } else {
+                charCountElement.style.color = 'rgba(255, 255, 255, 0.4)';
+            }
+        });
+    }
+    
+    // 🎯 Enhanced keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        // Ctrl+Enter to send message
+        if (e.ctrlKey && e.key === 'Enter' && inputElement && inputElement.value.trim()) {
+            const sendButton = document.getElementById('send-' + componentId);
+            if (sendButton) {
+                sendButton.click();
+            }
+        }
+    });
+    
+    console.log("🎮 Twitch component " + componentId + " JavaScript initialized with real-time event subscription");
+})();
+</script>
+
+<style>
+/* 🎨 Modern animations and styles */
+@keyframes messageSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes ambientPulse {
+    0% { opacity: 0.3; }
+    100% { opacity: 0.6; }
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* 📱 Enhanced scrollbar */
+#twitch-{{id}} .messages::-webkit-scrollbar {
+    width: 10px;
+}
+
+#twitch-{{id}} .messages::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+}
+
+#twitch-{{id}} .messages::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, rgba(145, 70, 255, 0.6) 0%, rgba(145, 70, 255, 0.3) 100%);
+    border-radius: 10px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+#twitch-{{id}} .messages::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, rgba(145, 70, 255, 0.8) 0%, rgba(145, 70, 255, 0.5) 100%);
+}
+
+/* 🎯 Focus and interaction enhancements */
+#input-{{id}}::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+    font-style: italic;
+}
+
+#input-{{id}}:focus::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+/* 📱 Enhanced mobile responsive design */
+@media (max-width: 768px) {
+    #twitch-{{id}} {
+        height: 450px;
+        max-width: 100%;
+        border-radius: 12px;
+        margin: 0 8px;
+    }
+    
+    #twitch-{{id}} .chat-header {
+        padding: 12px 16px;
+    }
+    
+    #twitch-{{id}} .chat-input {
+        padding: 12px 16px;
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    #twitch-{{id}} .message {
+        font-size: 13px;
+        padding: 10px 12px;
+    }
+    
+    #twitch-{{id}} .actions {
+        padding: 8px 16px;
+    }
+    
+    #send-{{id}} {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    #twitch-{{id}} {
+        height: 400px;
+        border-radius: 8px;
+        margin: 0 4px;
+    }
+    
+    #twitch-{{id}} .stats {
+        font-size: 10px;
+    }
+    
+    #twitch-{{id}} .message {
+        font-size: 12px;
+        padding: 8px 10px;
+    }
+}
+
+/* 🌟 Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+    #twitch-{{id}} *,
+    #twitch-{{id}} *::before,
+    #twitch-{{id}} *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* 🎯 High contrast mode support */
+@media (prefers-contrast: high) {
+    #twitch-{{id}} {
+        border: 2px solid #ffffff;
+    }
+    
+    #twitch-{{id}} .message {
+        border: 1px solid #ffffff;
+    }
+    
+    #twitch-{{id}} button {
+        border: 2px solid currentColor;
+    }
+}
+</style>

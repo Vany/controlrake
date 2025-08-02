@@ -1,0 +1,54 @@
+<div id="button-{{id}}" class="controlrake-button" style="margin: 10px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; display: inline-block; font-family: Arial, sans-serif;">
+    <h4 style="margin: 0 0 10px 0; color: #333;">🔘 {{text}}</h4>
+    <button type="button" 
+            style="background: #007bff; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-right: 10px;"
+            onmouseover="this.style.background='#0056b3'" 
+            onmouseout="this.style.background='#007bff'"
+            id="btn-{{id}}">
+        Click Me! 🖱️
+    </button>
+    <span class="click-count" style="background: #f8f9fa; padding: 5px 10px; border-radius: 4px; font-weight: bold;">
+        Clicks: {{click_count}}
+    </span>
+</div>
+<script>
+(function() {
+    const address = "button:{{id}}";
+    const element = document.getElementById("button-{{id}}");
+    const button = document.getElementById("btn-{{id}}");
+    
+    if (!element || !button) {
+        console.error(`❌ Button elements not found for ${address}`);
+        return;
+    }
+    
+    // Create self object for component messaging
+    const self = {
+        send: function(message) {
+            console.log(`🔘 Attempting to send: ${message} to ${address}`);
+            
+            if (window.system && window.system.websocket && window.system.websocket.readyState === WebSocket.OPEN) {
+                const payload = JSON.stringify({data: message});
+                const fullMessage = `${address} ${payload}`;
+                window.system.websocket.send(fullMessage);
+                console.log(`✅ Button sent message: ${fullMessage}`);
+            } else {
+                console.error('❌ ControlRake WebSocket not available or not connected');
+                console.log('WebSocket state:', window.system?.websocket?.readyState);
+            }
+        }
+    };
+    
+    // Set up click handler properly
+    button.addEventListener('click', function(event) {
+        event.preventDefault();
+        console.log(`🖱️ Button ${address} clicked!`);
+        self.send('click');
+    });
+    
+    // Make self globally available for debugging
+    window[`button_${address.replace(':', '_')}`] = self;
+    
+    console.log(`✅ Button component initialized: ${address}`);
+})();
+</script>

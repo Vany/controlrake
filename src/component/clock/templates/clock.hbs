@@ -1,0 +1,250 @@
+<div id="clock-{{id}}" class="clock-component">
+    <h3>🕰️ System Clock</h3>
+    <div class="clock-display">
+        <div class="current-time">
+            <span class="time-value">{{current_time_iso}}</span>
+            <span class="unix-time">({{current_time}})</span>
+        </div>
+    </div>
+    <div class="clock-status">
+        <div class="status-row">
+            <span class="label">Status:</span>
+            <span class="value status-indicator">{{status}}</span>
+        </div>
+        <div class="status-row">
+            <span class="label">Subscribers:</span>
+            <span class="value">{{subscriber_count}}</span>
+        </div>
+        <div class="status-row">
+            <span class="label">Upcoming Callbacks:</span>
+            <span class="value">{{upcoming_callbacks}}</span>
+        </div>
+    </div>
+    <div class="clock-controls">
+        <button onclick="self.send('status')" class="btn btn-primary">📊 Status</button>
+        <button onclick="self.send('sync')" class="btn btn-secondary">🔄 Sync Time</button>
+    </div>
+</div>
+
+<style>
+.clock-component {
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    padding: 20px;
+    margin: 12px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    min-width: 320px;
+}
+
+.clock-component h3 {
+    margin: 0 0 16px 0;
+    text-align: center;
+    font-size: 1.4em;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.clock-display {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+    text-align: center;
+    backdrop-filter: blur(10px);
+}
+
+.current-time {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.time-value {
+    font-size: 1.4em;
+    font-weight: bold;
+    font-family: 'Courier New', monospace;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.unix-time {
+    font-size: 0.9em;
+    opacity: 0.8;
+    font-family: 'Courier New', monospace;
+}
+
+.clock-status {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 16px;
+    backdrop-filter: blur(10px);
+}
+
+.status-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 6px 0;
+    font-size: 14px;
+}
+
+.label {
+    font-weight: 600;
+    opacity: 0.9;
+}
+
+.value {
+    font-family: 'Courier New', monospace;
+    background: rgba(255, 255, 255, 0.15);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+.status-indicator {
+    font-weight: bold;
+}
+
+.clock-controls {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+}
+
+.btn {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+.btn-primary {
+    background: rgba(0, 123, 255, 0.3);
+    border-color: rgba(0, 123, 255, 0.5);
+}
+
+.btn-primary:hover {
+    background: rgba(0, 123, 255, 0.5);
+}
+
+.btn-secondary {
+    background: rgba(108, 117, 125, 0.3);
+    border-color: rgba(108, 117, 125, 0.5);
+}
+
+.btn-secondary:hover {
+    background: rgba(108, 117, 125, 0.5);
+}
+
+/* Responsive design */
+@media (max-width: 480px) {
+    .clock-component {
+        margin: 8px;
+        padding: 16px;
+    }
+    
+    .time-value {
+        font-size: 1.2em;
+    }
+    
+    .clock-controls {
+        flex-direction: column;
+    }
+    
+    .btn {
+        width: 100%;
+    }
+}
+</style>
+
+<script>
+(function() {
+    const address = "clock:{{id}}";
+    const element = document.getElementById("clock-{{id}}");
+    
+    if (!element) {
+        console.error(`❌ Clock element not found for ${address}`);
+        return;
+    }
+    
+    // Create self object for component messaging
+    const self = {
+        send: function(action) {
+            console.log(`🕰️ Clock sending action: ${action} to ${address}`);
+            
+            if (window.system && window.system.websocket && window.system.websocket.readyState === WebSocket.OPEN) {
+                const payload = JSON.stringify({action: action});
+                const fullMessage = `${address} ${payload}`;
+                window.system.websocket.send(fullMessage);
+                console.log(`✅ Clock sent message: ${fullMessage}`);
+            } else {
+                console.error('❌ ControlRake WebSocket not available or not connected');
+                console.log('WebSocket state:', window.system?.websocket?.readyState);
+            }
+        }
+    };
+    
+    // Make self globally accessible for button clicks
+    window[`clock_${address.replace(':', '_')}`] = self;
+    window.self = self; // Also available as global self for template onclick handlers
+    
+    // Auto-update time display every second
+    function updateTimeDisplay() {
+        const timeElement = element.querySelector('.time-value');
+        const unixElement = element.querySelector('.unix-time');
+        
+        if (timeElement && unixElement) {
+            const now = new Date();
+            const unixTime = Math.floor(now.getTime() / 1000);
+            
+            // Format as ISO-like string (similar to server format)
+            const isoTime = now.toISOString().replace('T', ' ').substr(0, 19) + ' UTC';
+            
+            timeElement.textContent = isoTime;
+            unixElement.textContent = `(${unixTime})`;
+        }
+    }
+    
+    // Update immediately and then every second
+    updateTimeDisplay();
+    const updateInterval = setInterval(updateTimeDisplay, 1000);
+    
+    // Clean up interval when component is removed
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            mutation.removedNodes.forEach(function(node) {
+                if (node === element || (node.contains && node.contains(element))) {
+                    clearInterval(updateInterval);
+                    observer.disconnect();
+                }
+            });
+        });
+    });
+    
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+    
+    console.log(`✅ Clock component initialized: ${address}`);
+})();
+</script>

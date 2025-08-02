@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ControlRake Default Instance Architecture Demo 🏗️</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <script src="/static/js/controlrake.js?v=20250720-fix&nocache=true"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .demo-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .status.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .status.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .status.info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .status.warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .component-container {
+            min-height: 100px;
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+            background: #fafafa;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 15px 0;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-primary:hover { background: #0056b3; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-success:hover { background: #1e7e34; }
+        .btn-warning { background: #ffc107; color: #212529; }
+        .btn-warning:hover { background: #e0a800; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-danger:hover { background: #c82333; }
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .comparison-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+        .comparison-item.supported {
+            border-left-color: #28a745;
+        }
+        .comparison-item.not-supported {
+            border-left-color: #dc3545;
+        }
+        .code-example {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin: 10px 0;
+            overflow-x: auto;
+        }
+        .log {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        .architecture-info {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏗️ Default Instance Architecture Demo</h1>
+        <p>Interactive demonstration of the new default instance system</p>
+    </div>
+
+    <div class="demo-section">
+        <h2>🚀 Connection Status</h2>
+        <div id="connection-status" class="status info">Connecting to WebSocket...</div>
+    </div>
+
+    <div class="architecture-info">
+        <h2>🏛️ Architecture Overview</h2>
+        <p>The Default Instance Architecture allows components to have a "default" instance that doesn't require an explicit instance ID. This simplifies usage for singleton-style components while maintaining flexibility for multi-instance components.</p>
+        
+        <h3>📋 Component Support Matrix</h3>
+        <div class="comparison-grid">
+            <div class="comparison-item supported">
+                <h4>✅ Default Instance Supported</h4>
+                <ul>
+                    <li><strong>Clock</strong> - System timer/clock</li>
+                    <li><strong>HTTP</strong> - Web server interface</li>
+                    <li><strong>Twitch</strong> - IRC client connection</li>
+                </ul>
+                <div class="code-example">await system.spawn("clock"); // Creates clock:</div>
+            </div>
+            <div class="comparison-item not-supported">
+                <h4>❌ Default Instance NOT Supported</h4>
+                <ul>
+                    <li><strong>Button</strong> - Interactive UI elements</li>
+                </ul>
+                <div class="code-example">await system.spawn("button", "my-btn"); // Required!</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="demo-section">
+        <h2>🧪 Interactive Demonstrations</h2>
+        
+        <h3>✅ Supported: Default Clock Instance</h3>
+        <div class="controls">
+            <button class="btn btn-success" onclick="demonstrateDefaultClock()">🕰️ Use Default Clock</button>
+            <button class="btn btn-primary" onclick="demonstrateNamedClock()">⏰ Create Named Clock</button>
+        </div>
+        <div id="clock-container" class="component-container">
+            <p style="color: #666; text-align: center;">Clock components will appear here</p>
+        </div>
+
+        <h3>❌ Validation: Button Requires Instance ID</h3>
+        <div class="controls">
+            <button class="btn btn-danger" onclick="demonstrateButtonValidation()">⚠️ Try Default Button (Should Fail)</button>
+            <button class="btn btn-success" onclick="demonstrateValidButton()">✅ Create Valid Button</button>
+        </div>
+        <div id="button-container" class="component-container">
+            <p style="color: #666; text-align: center;">Button components will appear here</p>
+        </div>
+
+        <h3>🔄 Address Format Examples</h3>
+        <div class="controls">
+            <button class="btn btn-primary" onclick="showAddressExamples()">📋 Show Address Formats</button>
+            <button class="btn btn-warning" onclick="testAddressParsing()">🔍 Test Address Parsing</button>
+        </div>
+    </div>
+
+    <div class="demo-section">
+        <h2>📊 Demo Results</h2>
+        <div id="demo-results"></div>
+    </div>
+
+    <div class="demo-section">
+        <h2>📝 Debug Log</h2>
+        <div id="debug-log" class="log">Starting Default Instance Architecture Demo...<br></div>
+    </div>
+
+    <script>
+        // Demo state tracking
+        let demoState = {
+            connected: false,
+            defaultClockRendered: false,
+            namedClockRendered: false,
+            buttonValidationTested: false,
+            validButtonCreated: false
+        };
+
+        // Logging utility
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEl = document.getElementById('debug-log');
+            const color = type === 'error' ? '#ff6b6b' : 
+                         type === 'success' ? '#51cf66' : 
+                         type === 'warning' ? '#ffd43b' : '#74c0fc';
+            logEl.innerHTML += `<span style="color: ${color}">[${timestamp}] ${message}</span><br>`;
+            logEl.scrollTop = logEl.scrollHeight;
+            console.log(`[${timestamp}] ${message}`);
+        }
+
+        function updateStatus(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `status ${type}`;
+        }
+
+        function updateDemoResults() {
+            const results = document.getElementById('demo-results');
+            const tests = [
+                { name: 'WebSocket Connection', passed: demoState.connected },
+                { name: 'Default Clock Rendering', passed: demoState.defaultClockRendered },
+                { name: 'Named Clock Rendering', passed: demoState.namedClockRendered },
+                { name: 'Button Validation Testing', passed: demoState.buttonValidationTested },
+                { name: 'Valid Button Creation', passed: demoState.validButtonCreated }
+            ];
+
+            results.innerHTML = tests.map(test => 
+                `<div class="status ${test.passed ? 'success' : 'info'}">
+                    ${test.passed ? '✅' : '⏳'} ${test.name}
+                </div>`
+            ).join('');
+        }
+
+        // Demo functions
+        async function connectToSystem() {
+            try {
+                log('🔌 Connecting to ControlRake WebSocket...', 'info');
+                await system.connect();
+                demoState.connected = true;
+                updateStatus('connection-status', '✅ Connected to WebSocket successfully!', 'success');
+                log('✅ WebSocket connection established', 'success');
+                updateDemoResults();
+            } catch (error) {
+                updateStatus('connection-status', `❌ Connection failed: ${error.message}`, 'error');
+                log(`❌ Connection failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function demonstrateDefaultClock() {
+            try {
+                log('🕰️ Demonstrating default clock instance usage...', 'info');
+                
+                // The default clock should already be spawned by system startup
+                // We just need to render it
+                await system.render("#clock-container", "clock:");
+                demoState.defaultClockRendered = true;
+                
+                log('✅ Default clock instance rendered successfully!', 'success');
+                log('📌 Notice: Used address "clock:" (empty instance ID)', 'info');
+                updateDemoResults();
+            } catch (error) {
+                log(`❌ Default clock demo failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function demonstrateNamedClock() {
+            try {
+                log('⏰ Demonstrating named clock instance...', 'info');
+                
+                // Spawn a named clock instance
+                await system.spawn("clock", "demo-timer");
+                await system.render("#clock-container", "clock:demo-timer");
+                demoState.namedClockRendered = true;
+                
+                log('✅ Named clock instance created and rendered!', 'success');
+                log('📌 Notice: Used explicit instance ID "demo-timer"', 'info');
+                updateDemoResults();
+            } catch (error) {
+                log(`❌ Named clock demo failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function demonstrateButtonValidation() {
+            try {
+                log('⚠️ Testing button validation (this should fail)...', 'warning');
+                
+                // This should throw an error - buttons don't support default instances
+                await system.spawn("button");
+                
+                log('❌ ERROR: Validation should have failed but didn\'t!', 'error');
+            } catch (error) {
+                log(`✅ Validation working correctly: ${error.message}`, 'success');
+                demoState.buttonValidationTested = true;
+                updateDemoResults();
+            }
+        }
+
+        async function demonstrateValidButton() {
+            try {
+                log('✅ Creating valid button with instance ID...', 'info');
+                
+                await system.spawn("button", "demo-btn");
+                await system.render("#button-container", "button:demo-btn");
+                demoState.validButtonCreated = true;
+                
+                log('✅ Valid button created and rendered successfully!', 'success');
+                log('📌 Notice: Required explicit instance ID "demo-btn"', 'info');
+                updateDemoResults();
+            } catch (error) {
+                log(`❌ Valid button creation failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function showAddressExamples() {
+            log('📋 Address Format Examples:', 'info');
+            
+            const examples = [
+                { format: '"clock:"', description: 'Default clock instance', supported: true },
+                { format: '"clock:my-timer"', description: 'Named clock instance', supported: true },
+                { format: '"http:"', description: 'Default HTTP server', supported: true },
+                { format: '"twitch:"', description: 'Default Twitch client', supported: true },
+                { format: '"button:my-btn"', description: 'Named button (required)', supported: true },
+                { format: '"button:"', description: 'Default button (invalid)', supported: false },
+                { format: '"clock:.status"', description: 'Default clock status method', supported: true },
+                { format: '"button:my-btn.click"', description: 'Named button click method', supported: true }
+            ];
+
+            examples.forEach((example, index) => {
+                setTimeout(() => {
+                    const icon = example.supported ? '✅' : '❌';
+                    const type = example.supported ? 'info' : 'warning';
+                    log(`${icon} ${example.format} → ${example.description}`, type);
+                }, index * 300);
+            });
+        }
+
+        async function testAddressParsing() {
+            log('🔍 Testing address parsing logic...', 'info');
+            
+            // Test various address formats
+            const testAddresses = [
+                'clock:',
+                'clock:my-timer',
+                'button:test-btn',
+                'http:.status',
+                'twitch:streamer.connect'
+            ];
+
+            testAddresses.forEach((address, index) => {
+                setTimeout(() => {
+                    try {
+                        // Note: This would normally use system._parseAddress() but that's internal
+                        log(`🔍 Testing address: "${address}"`, 'info');
+                        
+                        // Simple parsing demonstration
+                        const parts = address.split(':');
+                        const component = parts[0];
+                        const instancePart = parts[1] || '';
+                        const isDefault = instancePart === '' || instancePart.startsWith('.');
+                        
+                        log(`   Component: ${component}, Instance: ${instancePart || '(default)'}, Method: ${instancePart.includes('.') ? instancePart.split('.')[1] : 'none'}`, 'success');
+                    } catch (error) {
+                        log(`   ❌ Parse error: ${error.message}`, 'error');
+                    }
+                }, index * 500);
+            });
+        }
+
+        async function runFullDemo() {
+            log('🚀 Starting comprehensive demo sequence...', 'info');
+            
+            try {
+                await connectToSystem();
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                log('🎬 Running demo sequence...', 'info');
+                updateDemoResults();
+                
+                log('🎉 Demo initialization completed! Use the buttons above to explore.', 'success');
+            } catch (error) {
+                log(`❌ Demo sequence failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Auto-run demo on page load
+        window.onload = function() {
+            log('📄 Page loaded, initializing demo...', 'info');
+            updateDemoResults();
+            
+            setTimeout(runFullDemo, 1000);
+        };
+    </script>
+</body>
+</html>

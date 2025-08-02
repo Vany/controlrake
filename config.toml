@@ -1,0 +1,31 @@
+[system]
+shutdown_timeout = 30
+log_level = "debug"
+test_delay_ms = 10
+
+[http]
+port = 8888
+auth_key = "controlrake-test-key"
+static_folder = "./static"
+bind_address = "0.0.0.0"
+base_url = "http://localhost"
+
+[update]
+max_text_length = 1000
+
+[twitch]
+username = "vanyserezhkin"
+channel = "vanyserezhkin"
+# OAuth configuration - replace with YOUR Twitch app credentials
+# Get these from: https://dev.twitch.tv/console/apps
+# IMPORTANT: Set redirect URI to: http://localhost:8888/oauth/twitch/
+client_id = "5mv03ieagfc77oy5sxjo5z3a3ju6ag"
+oauth_scopes = "chat:read chat:edit"
+
+# 🆕 Configurable timing and limits
+oauth_timeout_secs = 300
+max_message_length = 500
+max_stored_messages = 100
+reconnect_delays = [1, 2, 4, 8, 16, 30, 60]
+irc_server = "irc.chat.twitch.tv"
+irc_port = 6697

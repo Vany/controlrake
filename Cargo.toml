@@ -1,0 +1,79 @@
+[package]
+name = "controlrake"
+version = "0.1.0"
+edition = "2021"
+
+[workspace]
+members = [".", "controlrake_macros"]
+
+[dependencies]
+# Macro system
+controlrake_macros = { path = "./controlrake_macros" }
+
+# Core async runtime
+tokio = { version = "1.40", features = ["full"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+
+# Logging and tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["chrono"] }
+
+# Concurrent data structures
+dashmap = "6.0"
+
+# UUID generation
+uuid = { version = "1.0", features = ["v4"] }
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Component registry
+inventory = "0.3"
+
+# Synchronization primitives
+once_cell = "1.21"
+
+# Configuration management
+config = "0.14"
+
+# HTTP server (axum ecosystem)
+axum = { version = "0.7", features = ["ws"] }
+tower = "0.4"
+tower-http = { version = "0.5", features = ["fs", "cors"] }
+
+# WebSocket support
+tokio-tungstenite = "0.21"
+futures-util = "0.3"
+
+# HTTP client for OAuth token exchange
+reqwest = { version = "0.11", features = ["json", "gzip"] }
+
+# Async traits
+async-trait = "0.1"
+
+# Template engine for component HTML rendering
+handlebars = "5.1"
+
+# Database storage
+redb = "2.1"
+
+# Unix system calls (for flock)
+libc = "0.2"
+
+# Twitch component dependencies
+tokio-native-tls = "0.3"
+native-tls = "0.2"
+open = "5.0"
+url = "2.5"
+urlencoding = "2.1"
+chrono = { version = "0.4", features = ["serde"] }
+rand = "0.8"
+
+[dev-dependencies]
+tokio-test = "0.4"
+tempfile = "3.0"
