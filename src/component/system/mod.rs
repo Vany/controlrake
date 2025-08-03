@@ -2,6 +2,7 @@ pub mod helpers;
 pub mod simple_storage;
 pub mod database_recovery;
 pub mod process_lock;
+mod storage;
 
 use crate::component::Component;
 use crate::{bus::BusHandle, config::Config as GlobalConfig};
@@ -11,6 +12,7 @@ use serde_json::{json, Value};
 use std::sync::Arc;
 use tokio::sync::mpsc::UnboundedReceiver;
 use tracing::info;
+use crate::component::system::storage::get_or_create_storage;
 
 /// 📤 Component response builder for system operations
 #[derive(Debug, Clone, Serialize)]
@@ -226,14 +228,13 @@ impl SystemComponent {
         
         // Initialize storage engine - return errors instead of panicking
         let data_path = std::path::Path::new(&cfg.data_dir).join("controlrake.db");
-        let storage = match simple_storage::SimpleStorage::new(&data_path) {
+        let storage = match get_or_create_storage(&data_path) {
             Ok(s) => {
                 info!("🗄️ Storage engine initialized: {:?}", data_path);
-                Arc::new(s)
+                s
             },
             Err(e) => {
                 tracing::error!("🚨 Storage engine init failed: {:#}", e);
-                // Return error instead of panicking - allows graceful handling
                 anyhow::bail!("Storage engine initialization failed: {e}");
             }
         };
