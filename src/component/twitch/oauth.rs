@@ -1103,7 +1103,6 @@ impl TwitchOAuth {
                     }
                     return Err(std::io::Error::new(std::io::ErrorKind::NotFound, "No browser launcher found"));
                 }
-                Ok(())
             })),
         ];
 
